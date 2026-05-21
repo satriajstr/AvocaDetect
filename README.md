@@ -1,0 +1,1 @@
+abis pull. bikin venv, aktifin. terus jalanin "pip install -r requirements.txt"
