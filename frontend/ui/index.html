@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AvocaDetect - Klasifikasi Kematangan Alpukat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="AvocaDetect Logo" class="logo">
+                <span class="brand-name">AvocaDetect</span>
+            </div>
+            <div class="nav-menu">
+                <a href="#home" class="nav-link">Beranda</a>
+                <a href="#features" class="nav-link">Fitur</a>
+                <a href="#about" class="nav-link">Tentang</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">Deteksi Kematangan Alpukat dengan AI</h1>
+                <p class="hero-subtitle">Teknologi machine learning untuk mengklasifikasikan tingkat kematangan buah alpukat berdasarkan analisis tekstur secara akurat dan cepat</p>
+                <button class="btn-primary" onclick="scrollToDetection()">Mulai Deteksi</button>
+            </div>
+            <div class="hero-image">
+                <div class="avocado-illustration">🥑</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <h2 class="section-title">Fitur Unggulan</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📸</div>
+                    <h3 class="feature-title">Deteksi Real-time</h3>
+                    <p class="feature-desc">Upload foto atau gunakan kamera untuk deteksi instan tingkat kematangan alpukat</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3 class="feature-title">AI Akurat</h3>
+                    <p class="feature-desc">Menggunakan algoritma machine learning dengan akurasi tinggi untuk klasifikasi tekstur</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3 class="feature-title">Proses Cepat</h3>
+                    <p class="feature-desc">Hasil deteksi didapatkan dalam hitungan detik dengan performa optimal</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Detection Section -->
+    <section id="detection" class="detection">
+        <div class="container">
+            <h2 class="section-title">Coba Deteksi Sekarang</h2>
+            <div class="detection-container">
+                <div class="camera-preview">
+                    <div class="preview-placeholder">
+                        <span class="preview-icon">📷</span>
+                        <p>Area Preview Kamera</p>
+                        <p class="preview-hint">Upload gambar atau aktifkan kamera</p>
+                    </div>
+                </div>
+                <div class="detection-controls">
+                    <button class="btn-secondary" onclick="handleUpload()">
+                        <span>📁</span> Upload Gambar
+                    </button>
+                    <button class="btn-secondary" onclick="handleCamera()">
+                        <span>📸</span> Buka Kamera
+                    </button>
+                    <button class="btn-primary" onclick="handleDetect()">
+                        <span>🔍</span> Deteksi Kematangan
+                    </button>
+                </div>
+                <div class="result-container" id="resultContainer">
+                    <h3>Hasil Deteksi</h3>
+                    <div class="result-content">
+                        <p class="result-placeholder">Hasil akan muncul di sini setelah deteksi</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="container">
+            <h2 class="section-title">Tentang AvocaDetect</h2>
+            <div class="about-content">
+                <p class="about-text">
+                    AvocaDetect adalah aplikasi berbasis web yang dikembangkan untuk membantu mengklasifikasikan 
+                    tingkat kematangan buah alpukat menggunakan teknologi machine learning. Aplikasi ini menganalisis 
+                    tekstur permukaan alpukat untuk menentukan apakah buah tersebut masih mentah, matang sempurna, 
+                    atau terlalu matang.
+                </p>
+                <p class="about-text">
+                    Dengan memanfaatkan algoritma pengolahan citra digital dan deep learning, AvocaDetect memberikan 
+                    hasil yang akurat dan dapat membantu konsumen maupun petani dalam menentukan waktu panen atau 
+                    konsumsi yang tepat.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3 class="footer-title">AvocaDetect</h3>
+                    <p class="footer-desc">Klasifikasi Kematangan Alpukat Berbasis Tekstur</p>
+                </div>
+                <div class="footer-section">
+                    <h4 class="footer-subtitle">Informasi Proyek</h4>
+                    <p><strong>Mata Kuliah:</strong> Pengolahan Citra Digital</p>
+                    <p><strong>Dosen Pengampu:</strong> [Nama Dosen]</p>
+                    <p><strong>Tahun:</strong> 2024</p>
+                </div>
+                <div class="footer-section">
+                    <h4 class="footer-subtitle">Tim Pengembang</h4>
+                    <p>[Nama Anggota 1] - [NIM]</p>
+                    <p>[Nama Anggota 2] - [NIM]</p>
+                    <p>[Nama Anggota 3] - [NIM]</p>
+                    <p>[Nama Anggota 4] - [NIM]</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 AvocaDetect. Tugas Besar Pengolahan Citra Digital.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
