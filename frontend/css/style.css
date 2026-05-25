@@ -63,10 +63,9 @@ body {
 }
 
 .logo {
-    width: 36px;
-    height: 36px;
+    width: 50px;
+    height: 50px;
     object-fit: contain;
-    background: var(--white);
     border-radius: 8px;
     padding: 4px;
 }
@@ -101,23 +100,25 @@ body {
 /* ===== Hero Section ===== */
 .hero {
     background: linear-gradient(135deg, var(--cream), var(--gray-light));
-    padding: 3rem 0 2rem;
-    min-height: 100vh;
+    min-height: calc(100vh - 64px);
     display: flex;
     align-items: center;
+    justify-content: center;
+    padding: 2rem 0;
 }
 
 .hero .container {
     display: flex;
-    flex-direction: column;
-    gap: 2rem;
+    flex-direction: row;
     align-items: center;
-    text-align: center;
+    justify-content: space-between;
+    gap: 3rem;
+    width: 100%;
 }
 
 .hero-content {
+    flex: 1;
     animation: fadeInUp 0.8s ease;
-    max-width: 100%;
 }
 
 .hero-title {
@@ -135,20 +136,22 @@ body {
     margin-bottom: 1.5rem;
     line-height: 1.6;
     opacity: 0.9;
-    max-width: 90%;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 .hero-image {
+    flex: 1;
     display: flex;
     justify-content: center;
     align-items: center;
     animation: fadeInUp 0.8s ease 0.2s backwards;
 }
 
+/* Alpukat: aspect-ratio fixed agar tidak distorsi saat di-resize */
 .avocado-illustration {
-    font-size: 8rem;
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    object-fit: contain;
     animation: float 3s ease-in-out infinite;
     filter: drop-shadow(0 10px 20px var(--shadow));
 }
@@ -462,8 +465,8 @@ body {
     }
 
     .logo {
-        width: 40px;
-        height: 40px;
+        width: 56px;
+        height: 56px;
     }
 
     .brand-name {
@@ -480,18 +483,17 @@ body {
     }
 
     .hero {
-        padding: 4rem 0;
+        padding: 3rem 0;
     }
 
     .hero .container {
         flex-direction: row;
         gap: 3rem;
-        text-align: left;
+        align-items: center;
     }
 
     .hero-content {
         flex: 1;
-        max-width: 50%;
     }
 
     .hero-title {
@@ -502,16 +504,10 @@ body {
     .hero-subtitle {
         font-size: 1.1rem;
         margin-bottom: 2rem;
-        max-width: 100%;
-        margin-left: 0;
     }
 
     .hero-image {
         flex: 1;
-    }
-
-    .avocado-illustration {
-        font-size: 12rem;
     }
 
     .btn-primary {
@@ -623,20 +619,12 @@ body {
 
 /* ===== Desktop Large (1024px+) ===== */
 @media (min-width: 1024px) {
-    .hero .container {
-        gap: 60px;
-    }
-
     .hero-title {
         font-size: 3rem;
     }
 
     .hero-subtitle {
         font-size: 1.2rem;
-    }
-
-    .avocado-illustration {
-        font-size: 15rem;
     }
 
     .features {
@@ -663,8 +651,8 @@ body {
     }
 
     .logo {
-        width: 32px;
-        height: 32px;
+        width: 44px;
+        height: 44px;
     }
 
     .brand-name {
@@ -694,7 +682,7 @@ body {
     }
 
     .avocado-illustration {
-        font-size: 7rem;
+        max-width: 300px;
     }
 
     .btn-primary {

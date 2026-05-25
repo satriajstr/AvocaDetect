@@ -225,12 +225,18 @@ def detect():
         # 8. KLASIFIKASI SVM
         # ------------------------------------------------------------------
         features_scaled   = SCALER.transform(features)
-        prediction        = MODEL.predict(features_scaled)[0]
-        category          = CATEGORIES[prediction]
 
-        # predict_proba() → confidence yang dikalibrasi (Platt scaling)
+        # Hitung probabilitas semua kelas via Platt scaling
         probabilities_raw = MODEL.predict_proba(features_scaled)[0]
-        confidence        = float(probabilities_raw[prediction] * 100)
+
+        # Gunakan argmax dari predict_proba() sebagai prediksi final.
+        # Alasan: MODEL.predict() menggunakan SVM decision boundary, sedangkan
+        # predict_proba() menggunakan Platt scaling — keduanya bisa tidak sinkron.
+        # argmax menjamin prediksi selalu = kelas dengan probabilitas TERTINGGI.
+        import numpy as np
+        prediction = int(np.argmax(probabilities_raw))
+        category   = CATEGORIES[prediction]
+        confidence = float(probabilities_raw[prediction] * 100)
 
         # Tolak prediksi dengan confidence sangat rendah
         if confidence < 25:

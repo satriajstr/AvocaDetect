@@ -1,3 +1,11 @@
+// ===== Paksa scroll ke atas saat pertama kali load =====
+// Tanpa ini, browser menyimpan posisi scroll sebelumnya
+// sehingga tampilan awal berbeda dari klik "Beranda"
+if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+}
+window.scrollTo(0, 0);
+
 // ===== Smooth Scrolling =====
 function scrollToDetection() {
     const detectionSection = document.getElementById('detection');
@@ -299,7 +307,10 @@ function showResultPopup(result, images) {
             </div>
             
             <button class="btn-analyze-again" onclick="analyzeAgain()">
-                <span>🔄</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
                 <span>Analisa Kembali</span>
             </button>
         </div>
@@ -576,90 +587,107 @@ style.textContent = `
     }
     
     .popup-result-modern {
-        background: linear-gradient(135deg, #E8F5E9, #F1F8E9);
-        padding: 2rem;
-        border-radius: 16px;
+        background: linear-gradient(135deg, #fafafa, #f5f5f5);
+        padding: 2.5rem;
+        border-radius: 20px;
         border-left: 5px solid #6B8E23;
-        margin-bottom: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
     }
     
     .result-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 2rem;
-        padding-bottom: 1.5rem;
-        border-bottom: 2px solid rgba(107, 142, 35, 0.2);
+        margin-bottom: 2.5rem;
+        padding-bottom: 0;
+        border-bottom: none;
     }
     
     .result-category {
-        font-size: 2rem;
-        font-weight: 800;
+        font-size: 1.75rem;
+        font-weight: 700;
         letter-spacing: -0.5px;
     }
     
     .result-confidence {
         text-align: right;
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
     }
     
     .confidence-label {
-        display: block;
-        font-size: 0.75rem;
-        color: #666;
+        font-size: 0.7rem;
+        color: #888;
         font-weight: 500;
-        margin-bottom: 0.25rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    
-    .confidence-value {
-        font-size: 2rem;
-        font-weight: 800;
-    }
-    
-    .probabilities-modern h4 {
-        font-size: 1rem;
-        font-weight: 600;
-        color: #556B2F;
-        margin-bottom: 1rem;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
     
+    .confidence-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+    }
+    
+    .probabilities-modern {
+        background: white;
+        padding: 1.75rem;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    
+    .probabilities-modern h4 {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #666;
+        margin-bottom: 1.5rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
     .prob-grid {
-        display: grid;
-        gap: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
     }
     
     .prob-item {
-        background: white;
-        padding: 1rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        background: transparent;
+        padding: 0;
+        border-radius: 0;
+        box-shadow: none;
+        border-bottom: 1px solid #f0f0f0;
+        padding-bottom: 1.25rem;
+    }
+    
+    .prob-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
     }
     
     .prob-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.6rem;
     }
     
     .prob-label {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         font-weight: 600;
         color: #333;
     }
     
     .prob-value {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #6B8E23;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #666;
     }
     
     .prob-bar-container {
-        background: #f0f0f0;
-        height: 10px;
+        background: #f5f5f5;
+        height: 6px;
         border-radius: 10px;
         overflow: hidden;
     }
@@ -667,31 +695,53 @@ style.textContent = `
     .prob-bar {
         height: 100%;
         border-radius: 10px;
-        transition: width 0.6s ease;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     .btn-analyze-again {
         width: 100%;
-        background: linear-gradient(135deg, #6B8E23, #9ACD32);
+        background: linear-gradient(135deg, #5a7a1f, #7fb82e);
         color: white;
         padding: 1rem 2rem;
         border: none;
         border-radius: 50px;
-        font-size: 1.05rem;
+        font-size: 1rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 0.5rem;
-        box-shadow: 0 4px 15px rgba(107, 142, 35, 0.3);
+        gap: 0.6rem;
+        box-shadow: 0 4px 16px rgba(107, 142, 35, 0.25);
         font-family: 'Poppins', sans-serif;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .btn-analyze-again::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s;
+    }
+    
+    .btn-analyze-again:hover::before {
+        left: 100%;
     }
     
     .btn-analyze-again:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(107, 142, 35, 0.4);
+        box-shadow: 0 6px 24px rgba(107, 142, 35, 0.35);
+    }
+    
+    .btn-analyze-again span:first-child {
+        font-size: 1.1rem;
+        filter: brightness(0) invert(1);
     }
     
     @media (max-width: 768px) {
