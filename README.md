@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 abis pull. bikin venv, aktifin. terus jalanin "pip install -r requirements.txt"
 bikin struktur:
 ## Struktur Project
@@ -54,3 +55,9 @@ pip install -r requirements.txt
 ```bash
 python main.py
 ```
+=======
+abis pull: 
+1. bikin venv, aktifin.
+2. terus jalanin "pip install -r requirements.txt" buat install lib yang diperlukan.
+3. 
+>>>>>>> pre-processing
