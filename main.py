@@ -2,7 +2,7 @@ import cv2
 import os
 from preprocessing import resize_image, to_grayscale, reduce_noise, segment_image
 
-DATASET_DIR = "datasets"
+DATASET_DIR = "dataset"
 OUTPUT_DIR  = os.path.join("output", "preprocessing")
 CLASSES     = ["mentah", "setengah_matang", "matang", "terlalu_matang"]
 IMG_EXTS    = (".jpg", ".jpeg", ".png", ".bmp")
