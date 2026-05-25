@@ -153,7 +153,7 @@ def convert_to_grayscale(image):
 
 def reduce_noise(gray_image, method='gaussian'):
     """
-    Reduksi noise pada citra grayscale dengan implementasi manual.
+    Reduksi noise pada citra grayscale.
 
     Mengapa noise reduction sebelum GLCM?
     - Noise (variasi intensitas acak) mengganggu perhitungan co-occurrence
@@ -170,37 +170,11 @@ def reduce_noise(gray_image, method='gaussian'):
     denoised : gambar setelah noise reduction
     """
     if method == 'gaussian':
-        # Implementasi manual Gaussian Blur dengan kernel 5x5
-        # Kernel Gaussian 5x5 (sigma ≈ 1.0)
-        kernel = np.array([
-            [1,  4,  7,  4, 1],
-            [4, 16, 26, 16, 4],
-            [7, 26, 41, 26, 7],
-            [4, 16, 26, 16, 4],
-            [1,  4,  7,  4, 1]
-        ], dtype=np.float32) / 273.0  # Normalisasi agar sum = 1
-        
-        # Padding untuk menghindari border effect
-        padded = np.pad(gray_image, pad_width=2, mode='edge')
-        
-        # Konvolusi manual
-        h, w = gray_image.shape
-        denoised = np.zeros_like(gray_image, dtype=np.float32)
-        
-        for i in range(h):
-            for j in range(w):
-                # Ambil region 5x5
-                region = padded[i:i+5, j:j+5].astype(np.float32)
-                # Hitung weighted sum
-                denoised[i, j] = np.sum(region * kernel)
-        
-        return denoised.astype(np.uint8)
-    
+        # Gunakan cv2.GaussianBlur (optimized, jauh lebih cepat)
+        return cv2.GaussianBlur(gray_image, (5, 5), 0)
     elif method == 'median':
-        # Median: sangat baik untuk salt-and-pepper noise
         return cv2.medianBlur(gray_image, 5)
     elif method == 'bilateral':
-        # Bilateral: mempertahankan edge, cocok untuk gambar kompleks
         return cv2.bilateralFilter(gray_image, 9, 75, 75)
     return gray_image
 
@@ -239,53 +213,23 @@ def segment_image(denoised_gray):
     -------
     clean_mask : binary mask uint8 (255=objek, 0=background)
     """
-    # --- Otsu Thresholding (Manual Implementation) ---
-    # Hitung histogram
-    hist, _ = np.histogram(denoised_gray.flatten(), bins=256, range=(0, 256))
-    total_pixels = denoised_gray.size
-    
-    # Cari threshold optimal dengan Otsu's method
-    sum_total = np.sum(np.arange(256) * hist)
-    sum_background = 0
-    weight_background = 0
-    max_variance = 0
-    threshold = 0
-    
-    for t in range(256):
-        weight_background += hist[t]
-        if weight_background == 0:
-            continue
-        
-        weight_foreground = total_pixels - weight_background
-        if weight_foreground == 0:
-            break
-        
-        sum_background += t * hist[t]
-        mean_background = sum_background / weight_background
-        mean_foreground = (sum_total - sum_background) / weight_foreground
-        
-        # Between-class variance
-        variance = weight_background * weight_foreground * (mean_background - mean_foreground) ** 2
-        
-        if variance > max_variance:
-            max_variance = variance
-            threshold = t
-    
-    # Apply threshold (BINARY_INV: alpukat gelap = 255)
-    binary = np.where(denoised_gray < threshold, 255, 0).astype(np.uint8)
+    # --- Otsu Thresholding (gunakan cv2 yang sudah optimized) ---
+    _, binary = cv2.threshold(
+        denoised_gray, 0, 255,
+        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+    )
 
-    # --- Morphological Closing (Manual) ---
+    # --- Morphological Closing ---
     kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
     closed = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel_close, iterations=3)
 
-    # --- Morphological Opening (Manual) ---
+    # --- Morphological Opening ---
     kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
     opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel_open, iterations=1)
 
     # --- Ambil Komponen Terbesar ---
     num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(opened)
     if num_labels > 1:
-        # stats[0] = background, abaikan
         largest_label = 1 + np.argmax(stats[1:, cv2.CC_STAT_AREA])
         clean_mask = np.where(labels == largest_label, 255, 0).astype(np.uint8)
     else:
