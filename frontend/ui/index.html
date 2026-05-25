@@ -30,8 +30,8 @@
     <section id="home" class="hero">
         <div class="container">
             <div class="hero-content">
-                <h1 class="hero-title">Deteksi Kematangan Alpukat dengan AI</h1>
-                <p class="hero-subtitle">Teknologi machine learning untuk mengklasifikasikan tingkat kematangan buah alpukat berdasarkan analisis tekstur secara akurat dan cepat</p>
+                <h1 class="hero-title">Analisis Tekstur untuk Klasifikasi Tingkat Kematangan Alpukat</h1>
+                <p class="hero-subtitle">Mendeteksi tingkat kematangan buah alpukat melalui analisis tekstur permukaan kulit secara akurat dan cepat</p>
                 <button class="btn-primary" onclick="scrollToDetection()">
                     <span class="btn-icon">🚀</span>
                     <span>Mulai Deteksi</span>
@@ -49,15 +49,14 @@
             <h2 class="section-title">Tentang AvocaDetect</h2>
             <div class="about-content">
                 <p class="about-text">
-                    AvocaDetect adalah aplikasi berbasis web yang dikembangkan untuk membantu mengklasifikasikan 
-                    tingkat kematangan buah alpukat menggunakan teknologi machine learning. Aplikasi ini menganalisis 
-                    tekstur permukaan alpukat untuk menentukan apakah buah tersebut masih mentah, matang sempurna, 
-                    atau terlalu matang.
+                   AvocaDetect adalah aplikasi berbasis web yang dikembangkan untuk membantu mengklasifikasikan 
+                   tingkat kematangan buah alpukat menggunakan teknologi pengolahan citra digital. Aplikasi ini 
+                   menganalisis tekstur permukaan alpukat untuk menentukan apakah buah tersebut masih mentah, 
+                   setengah matang, matang, atau terlalu matang.
                 </p>
-                <p class="about-text">
-                    Dengan memanfaatkan algoritma pengolahan citra digital dan deep learning, AvocaDetect memberikan 
-                    hasil yang akurat dan dapat membantu konsumen maupun petani dalam menentukan waktu panen atau 
-                    konsumsi yang tepat.
+                <p class="about-text">Dengan memanfaatkan metode analisis tekstur dan pengolahan citra digital, 
+                    AvocaDetect memberikan hasil klasifikasi yang akurat dan dapat 
+                    membantu konsumen maupun petani dalam menentukan waktu panen atau konsumsi yang tepat.
                 </p>
             </div>
         </div>
@@ -66,22 +65,22 @@
     <!-- Features Section -->
     <section id="features" class="features">
         <div class="container">
-            <h2 class="section-title">Fitur Unggulan</h2>
+            <h2 class="section-title">Metode Yang Digunakan</h2>
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon"><img src="{{ url_for('static', filename='images/preprocessing.png') }}" alt="Preprocessing" class="feature-icon-img"></div>
-                    <h3 class="feature-title">Deteksi Real-time</h3>
-                    <p class="feature-desc">Upload foto atau gunakan kamera untuk deteksi instan tingkat kematangan alpukat</p>
+                    <h3 class="feature-title">Preprocessing</h3>
+                    <p class="feature-desc">Optimasi citra melalui resize, grayscale, dan noise reduction sebelum analisis tekstur</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon"><img src="{{ url_for('static', filename='images/glcm.png') }}" alt="GLCM" class="feature-icon-img"></div>
-                    <h3 class="feature-title">AI Akurat</h3>
-                    <p class="feature-desc">Menggunakan algoritma machine learning dengan akurasi tinggi untuk klasifikasi tekstur</p>
+                    <h3 class="feature-title">GLCM</h3>
+                    <p class="feature-desc">(Gray-Level Co-occurrence Matrix) Mengekstraksi pola tekstur permukaan alpukat untuk identifikasi tingkat kematangan</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon"><img src="{{ url_for('static', filename='images/svm.png') }}" alt="SVM" class="feature-icon-img"></div>
-                    <h3 class="feature-title">Proses Cepat</h3>
-                    <p class="feature-desc">Hasil deteksi didapatkan dalam hitungan detik dengan performa optimal</p>
+                    <h3 class="feature-title">SVM</h3>
+                    <p class="feature-desc">(Support Vector Machine) Mengklasifikasikan tingkat kematangan alpukat secara cepat dan akurat</p>
                 </div>
             </div>
         </div>
@@ -125,19 +124,20 @@
                 <div class="footer-section">
                     <h4 class="footer-subtitle">Informasi Proyek</h4>
                     <p><strong>Mata Kuliah:</strong> Pengolahan Citra Digital</p>
-                    <p><strong>Dosen Pengampu:</strong> [Nama Dosen]</p>
-                    <p><strong>Tahun:</strong> 2024</p>
+                    <p><strong>Dosen Pengampu:</strong> Ibu Irma Amelia Dewi., S. Kom., M.T.</p>
+                    <p><strong>Tahun:</strong> 2026</p>
                 </div>
                 <div class="footer-section">
                     <h4 class="footer-subtitle">Tim Pengembang</h4>
-                    <p>[Nama Anggota 1] - [NIM]</p>
-                    <p>[Nama Anggota 2] - [NIM]</p>
-                    <p>[Nama Anggota 3] - [NIM]</p>
-                    <p>[Nama Anggota 4] - [NIM]</p>
+                    <p>15-2024-049 Julius Satria Agung</p>
+                    <p>15-2024-052 Fadil Muhamad Fenegar</p>
+                    <p>15-2024-054 Bagus Wiguna Herdiansyah</p>
+                    <p>15-2024-129 Alsani Abdul Rofiq</p>
+                    <p>15-2024-139 Aditya Luthfi</p>
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2024 AvocaDetect. Tugas Besar Pengolahan Citra Digital.</p>
+                <p>&copy; 2026 AvocaDetect. Tugas Besar Mata Kuliah Pengolahan Citra Digital.</p>
             </div>
         </div>
     </footer>

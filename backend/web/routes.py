@@ -204,20 +204,12 @@ def detect():
         contour_overlay  = get_contour_overlay(original_resized, binary_mask)
 
         # ------------------------------------------------------------------
-        # 6. NORMALISASI ROI → GLCM (POIN 2: Gunakan levels=16 untuk visualisasi)
+        # 6. NORMALISASI ROI → GLCM
         # ------------------------------------------------------------------
-        roi_normalized = normalize_for_glcm(roi_cropped, levels=16)
-        
-        # Ekstrak mask ROI untuk filtering background
-        coords = cv2.findNonZero(binary_mask)
-        if coords is not None:
-            x, y, w, h = cv2.boundingRect(coords)
-            roi_mask = binary_mask[y:y + h, x:x + w]
-        else:
-            roi_mask = None
+        roi_normalized = normalize_for_glcm(roi_cropped, levels=32)
 
         # ------------------------------------------------------------------
-        # 7. EKSTRAKSI FITUR GLCM (dengan filtering background)
+        # 7. EKSTRAKSI FITUR GLCM
         # ------------------------------------------------------------------
         from backend.machine.feature_extraction.glcm import (
             compute_glcm_matrix,
@@ -225,14 +217,9 @@ def detect():
             get_feature_dict,
         )
 
-        # Hitung GLCM dengan levels=32 untuk ekstraksi fitur (akurasi tinggi)
-        roi_normalized_32 = normalize_for_glcm(roi_cropped, levels=32)
-        glcm_features = compute_glcm_matrix(roi_normalized_32, mask=roi_mask)
-        features = extract_features_from_glcm(glcm_features)
-        features_dict = get_feature_dict(glcm_features)
-        
-        # Hitung GLCM dengan levels=16 untuk visualisasi (lebih jelas)
-        glcm_visual = compute_glcm_matrix(roi_normalized, mask=roi_mask)
+        glcm          = compute_glcm_matrix(roi_normalized)
+        features      = extract_features_from_glcm(glcm)
+        features_dict = get_feature_dict(glcm)
 
         # ------------------------------------------------------------------
         # 8. KLASIFIKASI SVM
@@ -297,128 +284,57 @@ def detect():
         # [6] Contour Overlay — original + outline kuning
         img6_contour = img_to_base64(contour_overlay)
 
-        # [7] GLCM Heatmap (POIN 2: Visualisasi dengan colormap plasma)
-        import matplotlib
-        matplotlib.use('Agg')
-        import matplotlib.pyplot as plt
-        from io import BytesIO
-        
-        glcm_2d = glcm_visual[:, :, 0, 0]  # distance=1, angle=0°
-        
-        # Buat heatmap dengan matplotlib
-        fig, ax = plt.subplots(figsize=(6, 6), dpi=85)
-        im = ax.imshow(glcm_2d, cmap='plasma', interpolation='nearest', origin='lower')
-        
-        # Colorbar
-        cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-        cbar.set_label('Probabilitas', rotation=270, labelpad=15, fontsize=9)
-        
-        # Grid
-        levels_vis = glcm_2d.shape[0]
-        ax.set_xticks(np.arange(0, levels_vis, max(1, levels_vis // 8)))
-        ax.set_yticks(np.arange(0, levels_vis, max(1, levels_vis // 8)))
-        ax.grid(True, color='white', linewidth=0.5, alpha=0.3)
-        
-        # Label
-        ax.set_xlabel('Intensitas j', fontsize=10, fontweight='bold')
-        ax.set_ylabel('Intensitas i', fontsize=10, fontweight='bold')
-        ax.set_title('GLCM Matrix (16 levels)', fontsize=11, fontweight='bold')
-        
-        # Konversi ke BGR
-        buf = BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight', facecolor='white')
-        buf.seek(0)
-        img_arr = np.frombuffer(buf.read(), dtype=np.uint8)
-        buf.close()
-        plt.close(fig)
-        
-        glcm_colored = cv2.imdecode(img_arr, cv2.IMREAD_COLOR)
-        glcm_colored = cv2.resize(glcm_colored, (512, 512), interpolation=cv2.INTER_AREA)
-        
-        # Tambah thumbnail ROI
-        roi_thumb = cv2.resize(roi_normalized, (80, 80), interpolation=cv2.INTER_NEAREST)
+        # [7] GLCM Heatmap (MAGMA colormap → terlihat lebih ilmiah)
+        glcm_2d         = glcm[:, :, 0, 0]   # distance=1, angle=0°
+        glcm_norm       = (glcm_2d / (glcm_2d.max() + 1e-10) * 255).astype(np.uint8)
+        glcm_resized    = cv2.resize(glcm_norm, (512, 512), interpolation=cv2.INTER_NEAREST)
+        glcm_colored    = cv2.applyColorMap(glcm_resized, cv2.COLORMAP_MAGMA)
+
+        # Tambah grid tipis untuk tampilan matriks yang lebih profesional
+        step = 512 // 8
+        for i in range(0, 512, step):
+            cv2.line(glcm_colored, (i, 0), (i, 511), (60, 60, 60), 1)
+            cv2.line(glcm_colored, (0, i), (511, i), (60, 60, 60), 1)
+
+        # Tambah border
+        cv2.rectangle(glcm_colored, (0, 0), (511, 511), (100, 100, 100), 2)
+
+        # Thumbnail ROI di pojok kanan bawah
+        roi_thumb = cv2.resize(roi_normalized, (96, 96), interpolation=cv2.INTER_NEAREST)
         roi_thumb_bgr = cv2.cvtColor(roi_thumb, cv2.COLOR_GRAY2BGR)
-        glcm_colored[420:500, 420:500] = roi_thumb_bgr
-        cv2.rectangle(glcm_colored, (419, 419), (501, 501), (255, 255, 255), 2)
-        
+        glcm_colored[410:506, 410:506] = roi_thumb_bgr
+        cv2.rectangle(glcm_colored, (409, 409), (507, 507), (255, 255, 255), 1)
+
         img7_glcm = img_to_base64(glcm_colored)
 
-        # [8] Hasil SVM (POIN 3: Bounding box + label + overlay fitur GLCM)
+        # [8] Hasil SVM — original + border warna + teks prediksi
         result_img = original_resized.copy()
 
         color_map_bgr = {
-            'Mentah':          (70,  70, 255),
-            'Setengah Matang': (50, 165, 255),
-            'Matang':          (80, 200,  80),
-            'Terlalu Matang':  (120, 60, 180),
+            'Mentah':          (70,  70, 255),   # merah
+            'Setengah Matang': (50, 165, 255),   # orange
+            'Matang':          (80, 200,  80),   # hijau
+            'Terlalu Matang':  (120, 60, 180),   # ungu
         }
         border_color = color_map_bgr.get(category, (200, 200, 200))
-        
-        # Hitung bounding box dari mask
-        if coords is not None:
-            x_box, y_box, w_box, h_box = cv2.boundingRect(coords)
-        else:
-            x_box, y_box, w_box, h_box = 10, 10, 492, 492
 
-        # Bounding box tebal
-        cv2.rectangle(result_img, (x_box, y_box), (x_box+w_box, y_box+h_box), border_color, 4)
-        
-        # Corner markers
-        corner_len, corner_thick = 25, 6
-        cv2.line(result_img, (x_box, y_box), (x_box+corner_len, y_box), border_color, corner_thick)
-        cv2.line(result_img, (x_box, y_box), (x_box, y_box+corner_len), border_color, corner_thick)
-        cv2.line(result_img, (x_box+w_box, y_box), (x_box+w_box-corner_len, y_box), border_color, corner_thick)
-        cv2.line(result_img, (x_box+w_box, y_box), (x_box+w_box, y_box+corner_len), border_color, corner_thick)
-        cv2.line(result_img, (x_box, y_box+h_box), (x_box+corner_len, y_box+h_box), border_color, corner_thick)
-        cv2.line(result_img, (x_box, y_box+h_box), (x_box, y_box+h_box-corner_len), border_color, corner_thick)
-        cv2.line(result_img, (x_box+w_box, y_box+h_box), (x_box+w_box-corner_len, y_box+h_box), border_color, corner_thick)
-        cv2.line(result_img, (x_box+w_box, y_box+h_box), (x_box+w_box, y_box+h_box-corner_len), border_color, corner_thick)
+        # Border tebal
+        cv2.rectangle(result_img, (0, 0), (511, 511), border_color, 12)
 
-        # Label kategori + confidence
-        label_text = f"{category} ({confidence:.1f}%)"
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        (text_w, text_h), _ = cv2.getTextSize(label_text, font, 0.8, 2)
-        
-        label_x = x_box
-        label_y = max(y_box - 10, text_h + 10)
-        
+        # Semi-transparent background untuk teks
         overlay = result_img.copy()
-        cv2.rectangle(overlay, (label_x, label_y - text_h - 10), 
-                      (label_x + text_w + 20, label_y + 5), border_color, -1)
-        result_img = cv2.addWeighted(overlay, 0.7, result_img, 0.3, 0)
-        cv2.putText(result_img, label_text, (label_x + 10, label_y - 5),
-                    font, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
+        cv2.rectangle(overlay, (8, 8), (503, 125), (15, 15, 15), -1)
+        result_img = cv2.addWeighted(overlay, 0.65, result_img, 0.35, 0)
 
-        # Overlay 4 fitur GLCM di pojok kiri bawah
-        main_features = [
-            ('Contrast', features_dict.get('Contrast (mean)', 0)),
-            ('Correlation', features_dict.get('Correlation (mean)', 0)),
-            ('Energy', features_dict.get('Energy (mean)', 0)),
-            ('Homogeneity', features_dict.get('Homogeneity (mean)', 0)),
-        ]
-        
-        feat_x, feat_y_start = 15, 512 - 140
-        feat_box_w, feat_box_h = 230, 125
-        
-        overlay2 = result_img.copy()
-        cv2.rectangle(overlay2, (feat_x - 5, feat_y_start - 5),
-                      (feat_x + feat_box_w, feat_y_start + feat_box_h),
-                      (30, 30, 30), -1)
-        result_img = cv2.addWeighted(overlay2, 0.75, result_img, 0.25, 0)
-        cv2.rectangle(result_img, (feat_x - 5, feat_y_start - 5),
-                      (feat_x + feat_box_w, feat_y_start + feat_box_h),
-                      (100, 100, 100), 1)
-        
-        cv2.putText(result_img, "GLCM Features:", (feat_x, feat_y_start + 15),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
-        
-        y_offset = feat_y_start + 40
-        for feat_name, feat_value in main_features:
-            text = f"{feat_name}: {feat_value:.4f}"
-            cv2.putText(result_img, text, (feat_x, y_offset),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (220, 220, 220), 1, cv2.LINE_AA)
-            y_offset += 22
-        
+        # Teks prediksi
+        cv2.putText(
+            result_img, category, (25, 60),
+            cv2.FONT_HERSHEY_SIMPLEX, 1.3, (255, 255, 255), 3, cv2.LINE_AA
+        )
+        cv2.putText(
+            result_img, f"Confidence: {confidence:.1f}%", (25, 100),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.85, (210, 210, 210), 2, cv2.LINE_AA
+        )
         img8_svm = img_to_base64(result_img)
 
         # ------------------------------------------------------------------

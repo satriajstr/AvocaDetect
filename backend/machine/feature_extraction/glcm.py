@@ -48,10 +48,9 @@ GLCM_LEVELS    = 32                                         # jumlah level
 # PERHITUNGAN GLCM MATRIX
 # =============================================================================
 
-def compute_glcm_matrix(roi_normalized, mask=None):
+def compute_glcm_matrix(roi_normalized):
     """
     Hitung GLCM matrix dari ROI yang sudah dikuantisasi.
-    PERBAIKAN: Filter piksel background (mask=0) agar tidak ikut perhitungan.
 
     GLCM[i,j] = frekuensi pasangan piksel bersebelahan dengan intensitas (i,j)
     - symmetric=True: GLCM[i,j] = GLCM[j,i] (matriks simetris)
@@ -60,38 +59,19 @@ def compute_glcm_matrix(roi_normalized, mask=None):
     Parameters
     ----------
     roi_normalized : gambar uint8 dengan nilai [0, GLCM_LEVELS-1]
-    mask : binary mask (255=objek, 0=background), jika None maka proses semua piksel
 
     Returns
     -------
     glcm : numpy array shape (levels, levels, n_distances, n_angles)
     """
-    # POIN 1: Filter background dari perhitungan GLCM
-    roi_filtered = roi_normalized.copy()
-    if mask is not None:
-        # Set piksel background ke nilai di luar range [0, GLCM_LEVELS-1]
-        # Nilai GLCM_LEVELS akan diabaikan oleh graycomatrix
-        roi_filtered[mask == 0] = GLCM_LEVELS
-    
     glcm = graycomatrix(
-        roi_filtered,
+        roi_normalized,
         distances=GLCM_DISTANCES,
         angles=GLCM_ANGLES,
-        levels=GLCM_LEVELS + 1 if mask is not None else GLCM_LEVELS,
+        levels=GLCM_LEVELS,
         symmetric=True,
         normed=True
     )
-    
-    # Buang baris/kolom untuk nilai 'ignore' (GLCM_LEVELS)
-    if mask is not None:
-        glcm = glcm[:GLCM_LEVELS, :GLCM_LEVELS, :, :]
-        # Renormalisasi
-        for d in range(glcm.shape[2]):
-            for a in range(glcm.shape[3]):
-                total = glcm[:, :, d, a].sum()
-                if total > 0:
-                    glcm[:, :, d, a] /= total
-    
     return glcm
 
 

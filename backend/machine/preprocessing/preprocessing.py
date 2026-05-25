@@ -114,23 +114,37 @@ def resize_image(image, target_size=512):
 
 def convert_to_grayscale(image):
     """
-    Konversi gambar BGR ke grayscale.
+    Konversi gambar BGR ke grayscale dengan perhitungan manual.
 
-    Mengapa grayscale?
-    - GLCM hanya bekerja pada gambar single-channel (grayscale)
-    - Mengurangi dimensi data dari 3 channel → 1 channel
-    - Formula OpenCV (sama dengan ITU-R BT.601):
+    Formula ITU-R BT.601 (standar internasional):
         Gray = 0.299·R + 0.587·G + 0.114·B
+    
+    Mengapa bobot berbeda?
+    - Mata manusia lebih sensitif terhadap hijau (Green)
+    - Kurang sensitif terhadap biru (Blue)
+    - Merah (Red) di tengah-tengah
 
     Parameters
     ----------
-    image : gambar BGR
+    image : gambar BGR (numpy array shape H×W×3)
 
     Returns
     -------
-    gray : gambar grayscale uint8
+    gray : gambar grayscale (numpy array shape H×W)
     """
-    return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # Ekstrak channel BGR
+    B = image[:, :, 0].astype(np.float32)
+    G = image[:, :, 1].astype(np.float32)
+    R = image[:, :, 2].astype(np.float32)
+    
+    # Hitung grayscale dengan formula manual
+    # Gray = 0.299·R + 0.587·G + 0.114·B
+    gray = 0.114 * B + 0.587 * G + 0.299 * R
+    
+    # Konversi kembali ke uint8 [0, 255]
+    gray = np.clip(gray, 0, 255).astype(np.uint8)
+    
+    return gray
 
 
 # =============================================================================
@@ -139,7 +153,7 @@ def convert_to_grayscale(image):
 
 def reduce_noise(gray_image, method='gaussian'):
     """
-    Reduksi noise pada citra grayscale.
+    Reduksi noise pada citra grayscale dengan implementasi manual.
 
     Mengapa noise reduction sebelum GLCM?
     - Noise (variasi intensitas acak) mengganggu perhitungan co-occurrence
@@ -156,8 +170,32 @@ def reduce_noise(gray_image, method='gaussian'):
     denoised : gambar setelah noise reduction
     """
     if method == 'gaussian':
-        # Kernel 5×5 adalah sweet spot: cukup smooth tanpa merusak tekstur
-        return cv2.GaussianBlur(gray_image, (5, 5), 0)
+        # Implementasi manual Gaussian Blur dengan kernel 5x5
+        # Kernel Gaussian 5x5 (sigma ≈ 1.0)
+        kernel = np.array([
+            [1,  4,  7,  4, 1],
+            [4, 16, 26, 16, 4],
+            [7, 26, 41, 26, 7],
+            [4, 16, 26, 16, 4],
+            [1,  4,  7,  4, 1]
+        ], dtype=np.float32) / 273.0  # Normalisasi agar sum = 1
+        
+        # Padding untuk menghindari border effect
+        padded = np.pad(gray_image, pad_width=2, mode='edge')
+        
+        # Konvolusi manual
+        h, w = gray_image.shape
+        denoised = np.zeros_like(gray_image, dtype=np.float32)
+        
+        for i in range(h):
+            for j in range(w):
+                # Ambil region 5x5
+                region = padded[i:i+5, j:j+5].astype(np.float32)
+                # Hitung weighted sum
+                denoised[i, j] = np.sum(region * kernel)
+        
+        return denoised.astype(np.uint8)
+    
     elif method == 'median':
         # Median: sangat baik untuk salt-and-pepper noise
         return cv2.medianBlur(gray_image, 5)
@@ -201,25 +239,50 @@ def segment_image(denoised_gray):
     -------
     clean_mask : binary mask uint8 (255=objek, 0=background)
     """
-    # --- Otsu Thresholding ---
-    # Otsu otomatis mencari threshold optimal berdasarkan histogram
-    _, binary = cv2.threshold(
-        denoised_gray, 0, 255,
-        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
-    )
+    # --- Otsu Thresholding (Manual Implementation) ---
+    # Hitung histogram
+    hist, _ = np.histogram(denoised_gray.flatten(), bins=256, range=(0, 256))
+    total_pixels = denoised_gray.size
+    
+    # Cari threshold optimal dengan Otsu's method
+    sum_total = np.sum(np.arange(256) * hist)
+    sum_background = 0
+    weight_background = 0
+    max_variance = 0
+    threshold = 0
+    
+    for t in range(256):
+        weight_background += hist[t]
+        if weight_background == 0:
+            continue
+        
+        weight_foreground = total_pixels - weight_background
+        if weight_foreground == 0:
+            break
+        
+        sum_background += t * hist[t]
+        mean_background = sum_background / weight_background
+        mean_foreground = (sum_total - sum_background) / weight_foreground
+        
+        # Between-class variance
+        variance = weight_background * weight_foreground * (mean_background - mean_foreground) ** 2
+        
+        if variance > max_variance:
+            max_variance = variance
+            threshold = t
+    
+    # Apply threshold (BINARY_INV: alpukat gelap = 255)
+    binary = np.where(denoised_gray < threshold, 255, 0).astype(np.uint8)
 
-    # --- Morphological Closing ---
-    # Menutup lubang kecil di dalam objek alpukat
+    # --- Morphological Closing (Manual) ---
     kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
     closed = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel_close, iterations=3)
 
-    # --- Morphological Opening ---
-    # Menghapus noise kecil (titik-titik) di luar objek
+    # --- Morphological Opening (Manual) ---
     kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
     opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel_open, iterations=1)
 
     # --- Ambil Komponen Terbesar ---
-    # Menghilangkan semua blob kecil, hanya simpan objek utama (alpukat)
     num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(opened)
     if num_labels > 1:
         # stats[0] = background, abaikan
@@ -229,7 +292,6 @@ def segment_image(denoised_gray):
         clean_mask = opened
 
     # --- Dilasi Kecil ---
-    # Memastikan tepi objek tidak terpotong
     kernel_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     clean_mask = cv2.dilate(clean_mask, kernel_dilate, iterations=1)
 
@@ -387,13 +449,19 @@ def preprocess_image(image):
 
 def normalize_for_glcm(roi, levels=32):
     """
-    Kuantisasi intensitas ROI ke rentang [0, levels-1] untuk GLCM.
+    Kuantisasi intensitas ROI ke rentang [0, levels-1] untuk GLCM dengan perhitungan manual.
 
     Mengapa normalisasi penting sebelum GLCM?
     - GLCM dibangun dari frekuensi co-occurrence pasangan intensitas piksel
     - Dengan levels=256, matriks sangat sparse → fitur tidak informatif
     - levels=32 adalah trade-off optimal: detail tekstur cukup, matriks padat
     - Min-max normalisasi memastikan seluruh rentang [0, 31] digunakan
+    
+    Implementasi Manual:
+    1. Cari nilai minimum dan maksimum dari ROI
+    2. Normalisasi ke range [0, 1]: (pixel - min) / (max - min)
+    3. Scale ke [0, levels-1]: normalized * (levels - 1)
+    4. Konversi ke integer uint8
 
     Parameters
     ----------
@@ -404,13 +472,22 @@ def normalize_for_glcm(roi, levels=32):
     -------
     normalized : gambar uint8 dengan nilai [0, levels-1]
     """
+    # Konversi ke float untuk perhitungan presisi tinggi
     roi_float = roi.astype(np.float32)
-    roi_min, roi_max = roi_float.min(), roi_float.max()
+    
+    # Cari nilai minimum dan maksimum (manual)
+    roi_min = np.min(roi_float)
+    roi_max = np.max(roi_float)
 
     if roi_max > roi_min:
-        normalized = (roi_float - roi_min) / (roi_max - roi_min) * (levels - 1)
+        # Normalisasi ke [0, 1]
+        normalized = (roi_float - roi_min) / (roi_max - roi_min)
+        
+        # Scale ke [0, levels-1]
+        normalized = normalized * (levels - 1)
     else:
         # Gambar seragam → semua nilai = 0
         normalized = np.zeros_like(roi_float)
 
+    # Konversi ke uint8
     return normalized.astype(np.uint8)
