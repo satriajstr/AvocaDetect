@@ -77,7 +77,7 @@ def load_ml_model():
         return True
 
     try:
-        from backend.machine.model.test_svm import load_model
+        import pickle
 
         model_path  = 'backend/machine/model/svm_model.pkl'
         scaler_path = 'backend/machine/model/scaler.pkl'
@@ -89,12 +89,20 @@ def load_ml_model():
             print("=" * 60)
             return False
 
-        MODEL, SCALER = load_model(model_path, scaler_path)
+        # Load model dengan pickle
+        with open(model_path, 'rb') as f:
+            MODEL = pickle.load(f)
+        
+        with open(scaler_path, 'rb') as f:
+            SCALER = pickle.load(f)
+        
         print("\n  [OK] Model SVM berhasil di-load!")
         return True
 
     except Exception as e:
         print(f"\n  [ERR] Error loading model: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
