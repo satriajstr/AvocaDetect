@@ -1,82 +1,67 @@
-import cv2
+"""
+Main script untuk menjalankan proses machine learning
+Preprocessing -> Feature Extraction -> Training -> Testing
+"""
+
+import sys
 import os
-from preprocessing import resize_image, to_grayscale, reduce_noise, segment_image
 
-DATASET_DIR = "dataset"
-OUTPUT_DIR  = os.path.join("output", "preprocessing")
-CLASSES     = ["mentah", "setengah_matang", "matang", "terlalu_matang"]
-IMG_EXTS    = (".jpg", ".jpeg", ".png", ".bmp")
+# Tambahkan path root ke sys.path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+from backend.machine.model.train_svm import train_model
+from backend.machine.model.test_svm import predict_single_image
 
-def save(path, image):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    cv2.imwrite(path, image)
-
-
-def preprocess_image(img_path):
+def main():
     """
-    Jalankan full pipeline preprocessing pada satu gambar.
-    Return dict berisi setiap tahap hasil preprocessing.
+    Fungsi utama untuk menjalankan pipeline machine learning
     """
-    image = cv2.imread(img_path)
-    if image is None:
-        raise ValueError(f"Gambar tidak bisa dibaca: {img_path}")
-
-    resized    = resize_image(image)
-    gray       = to_grayscale(resized)
-    blurred    = reduce_noise(gray)
-    mask, segmented = segment_image(blurred)
-
-    return {
-        "resized":    resized,
-        "gray":       gray,
-        "blurred":    blurred,
-        "mask":       mask,
-        "segmented":  segmented,
-    }
-
-
-def run_batch():
-    total, errors = 0, 0
-
-    for cls in CLASSES:
-        input_dir  = os.path.join(DATASET_DIR, cls)
-        output_dir = os.path.join(OUTPUT_DIR, cls)
-
-        if not os.path.isdir(input_dir):
-            print(f"[SKIP] Folder tidak ditemukan: {input_dir}")
-            continue
-
-        files = [f for f in os.listdir(input_dir) if f.lower().endswith(IMG_EXTS)]
-        if not files:
-            print(f"[SKIP] Tidak ada gambar di: {input_dir}")
-            continue
-
-        print(f"\n[INFO] Memproses kelas '{cls}' — {len(files)} gambar")
-
-        for fname in files:
-            img_path = os.path.join(input_dir, fname)
-            name     = os.path.splitext(fname)[0]
-
-            try:
-                stages = preprocess_image(img_path)
-
-                # Simpan setiap tahap ke subfolder masing-masing
-                for stage, img in stages.items():
-                    out_path = os.path.join(output_dir, stage, f"{name}.jpg")
-                    save(out_path, img)
-
-                total += 1
-                print(f"  [OK] {fname}")
-
-            except Exception as e:
-                errors += 1
-                print(f"  [ERROR] {fname}: {e}")
-
-    print(f"\n{'='*40}")
-    print(f"Selesai. Berhasil: {total} | Gagal: {errors}")
-    print(f"Output disimpan di: {OUTPUT_DIR}")
-
+    print("=" * 60)
+    print("AvocaDetect - Machine Learning Pipeline")
+    print("=" * 60)
+    
+    print("\nPilih opsi:")
+    print("1. Training model SVM")
+    print("2. Test prediksi gambar")
+    print("3. Exit")
+    
+    choice = input("\nMasukkan pilihan (1/2/3): ")
+    
+    if choice == '1':
+        # Training model
+        dataset_path = 'dataset'
+        try:
+            print("\nMemulai training...\n")
+            model, scaler, accuracy = train_model(dataset_path)
+            print(f"\n✓ Training selesai dengan akurasi {accuracy*100:.2f}%")
+        except Exception as e:
+            print(f"\n✗ Error saat training: {str(e)}")
+    
+    elif choice == '2':
+        # Test prediksi
+        image_path = input("\nMasukkan path gambar untuk diprediksi: ")
+        
+        if not os.path.exists(image_path):
+            print(f"\n✗ File tidak ditemukan: {image_path}")
+            return
+        
+        try:
+            print("\nMemproses gambar...\n")
+            result = predict_single_image(image_path)
+            
+            print("Hasil Prediksi:")
+            print(f"  Kategori: {result['category']}")
+            print(f"  Confidence: {result['confidence']:.2f}%")
+            print(f"\nProbabilitas semua kelas:")
+            for category, prob in result['probabilities'].items():
+                print(f"  {category}: {prob:.2f}%")
+        except Exception as e:
+            print(f"\n✗ Error saat prediksi: {str(e)}")
+    
+    elif choice == '3':
+        print("\nTerima kasih!")
+    else:
+        print("\n✗ Pilihan tidak valid!")
 
 if __name__ == "__main__":
-    run_batch()
+    main()
