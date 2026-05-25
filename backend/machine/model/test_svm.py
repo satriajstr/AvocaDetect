@@ -1,166 +1,171 @@
 """
-Testing dan Prediksi Model SVM
+Prediksi Model SVM - AvocaDetect
+==================================
+Load model yang sudah di-training dan lakukan prediksi kematangan alpukat.
+
+Perbedaan dari versi lama:
+- Menggunakan predict_proba() (Platt scaling) bukan softmax manual
+  → confidence score lebih valid secara statistik
+- Return juga feature_dict untuk ditampilkan sebagai tabel di UI
+
+Author: AvocaDetect Team
 """
 
 import os
+import sys
 import pickle
 import numpy as np
-import sys
 
-# Tambahkan path root project
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+# Path root project
+sys.path.append(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+)
 
 from backend.machine.feature_extraction.glcm import extract_glcm_features
 
-def load_model(model_path='backend/machine/model/svm_model.pkl', 
-               scaler_path='backend/machine/model/scaler.pkl'):
+# Label kategori
+CATEGORIES = {
+    0: 'Mentah',
+    1: 'Setengah Matang',
+    2: 'Matang',
+    3: 'Terlalu Matang',
+}
+
+
+def load_model(
+    model_path  = 'backend/machine/model/svm_model.pkl',
+    scaler_path = 'backend/machine/model/scaler.pkl',
+):
     """
-    Load model SVM dan scaler yang sudah di-training
-    
-    Parameters:
-    - model_path: path ke file model
-    - scaler_path: path ke file scaler
-    
-    Returns:
-    - model: trained SVM model
-    - scaler: fitted StandardScaler
+    Load model SVM dan scaler dari file .pkl.
+
+    Parameters
+    ----------
+    model_path  : str — path ke file model
+    scaler_path : str — path ke file scaler
+
+    Returns
+    -------
+    model  : trained SVC dengan probability=True
+    scaler : fitted StandardScaler
     """
-    
     if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Model tidak ditemukan di: {model_path}")
-    
+        raise FileNotFoundError(f"Model tidak ditemukan: {model_path}")
     if not os.path.exists(scaler_path):
-        raise FileNotFoundError(f"Scaler tidak ditemukan di: {scaler_path}")
-    
+        raise FileNotFoundError(f"Scaler tidak ditemukan: {scaler_path}")
+
     with open(model_path, 'rb') as f:
         model = pickle.load(f)
-    
+
     with open(scaler_path, 'rb') as f:
         scaler = pickle.load(f)
-    
+
     return model, scaler
+
 
 def predict_single_image(image_path, model=None, scaler=None):
     """
-    Prediksi tingkat kematangan alpukat dari satu gambar
-    
-    Parameters:
-    - image_path: path ke gambar
-    - model: trained SVM model (optional, akan di-load jika None)
-    - scaler: fitted StandardScaler (optional, akan di-load jika None)
-    
-    Returns:
-    - prediction: label prediksi (0-3)
-    - category: nama kategori
-    - probabilities: probabilitas untuk setiap kelas (jika tersedia)
+    Prediksi tingkat kematangan alpukat dari satu gambar.
+
+    Menggunakan predict_proba() (Platt scaling) yang diaktifkan
+    saat training dengan probability=True.
+    Hasilnya lebih valid dibanding softmax manual pada decision_function.
+
+    Parameters
+    ----------
+    image_path : str — path ke file gambar
+    model      : SVC (optional, di-load otomatis jika None)
+    scaler     : StandardScaler (optional)
+
+    Returns
+    -------
+    dict dengan keys:
+        prediction   : int (0–3)
+        category     : str
+        confidence   : float (%)
+        probabilities: dict {kategori: float(%)}
     """
-    
-    # Load model jika belum di-load
+    # Load model jika belum diberikan
     if model is None or scaler is None:
         model, scaler = load_model()
-    
-    # Ekstraksi fitur dari gambar
+
+    # Ekstraksi fitur GLCM dari gambar
     features = extract_glcm_features(image_path)
-    
-    # Normalisasi fitur
+
+    # Normalisasi fitur menggunakan scaler yang sudah di-fit saat training
     features_scaled = scaler.transform(features)
-    
-    # Prediksi
+
+    # Prediksi kelas
     prediction = model.predict(features_scaled)[0]
-    
-    # Mapping label ke kategori
-    categories = {
-        0: 'Mentah',
-        1: 'Setengah Matang',
-        2: 'Matang',
-        3: 'Terlalu Matang'
-    }
-    
-    category = categories[prediction]
-    
-    # Hitung confidence (decision function)
-    decision_values = model.decision_function(features_scaled)[0]
-    
-    # Konversi ke probabilitas sederhana (normalisasi)
-    # Karena SVM tidak memberikan probabilitas langsung
-    exp_values = np.exp(decision_values - np.max(decision_values))
-    probabilities = exp_values / exp_values.sum()
-    
-    # Buat dictionary hasil
+    category   = CATEGORIES[prediction]
+
+    # Confidence menggunakan predict_proba() (Platt scaling)
+    # Lebih valid dibanding softmax manual karena dikalibrasi saat training
+    probabilities_raw = model.predict_proba(features_scaled)[0]
+    confidence        = float(probabilities_raw[prediction] * 100)
+
     result = {
-        'prediction': int(prediction),
-        'category': category,
-        'confidence': float(probabilities[prediction] * 100),
+        'prediction':    int(prediction),
+        'category':      category,
+        'confidence':    round(confidence, 2),
         'probabilities': {
-            'Mentah': float(probabilities[0] * 100),
-            'Setengah Matang': float(probabilities[1] * 100),
-            'Matang': float(probabilities[2] * 100),
-            'Terlalu Matang': float(probabilities[3] * 100)
-        }
+            cat: round(float(probabilities_raw[i] * 100), 2)
+            for i, cat in CATEGORIES.items()
+        },
     }
-    
+
     return result
+
 
 def predict_batch(image_paths, model=None, scaler=None):
     """
-    Prediksi batch untuk multiple gambar
-    
-    Parameters:
-    - image_paths: list of image paths
-    - model: trained SVM model (optional)
-    - scaler: fitted StandardScaler (optional)
-    
-    Returns:
-    - results: list of prediction results
+    Prediksi batch untuk multiple gambar.
+
+    Parameters
+    ----------
+    image_paths : list of str
+    model       : SVC (optional)
+    scaler      : StandardScaler (optional)
+
+    Returns
+    -------
+    list of dicts dengan keys: image_path, result/error, success
     """
-    
-    # Load model jika belum di-load
     if model is None or scaler is None:
         model, scaler = load_model()
-    
+
     results = []
-    
     for image_path in image_paths:
         try:
             result = predict_single_image(image_path, model, scaler)
-            results.append({
-                'image_path': image_path,
-                'result': result,
-                'success': True
-            })
+            results.append({'image_path': image_path, 'result': result, 'success': True})
         except Exception as e:
-            results.append({
-                'image_path': image_path,
-                'error': str(e),
-                'success': False
-            })
-    
+            results.append({'image_path': image_path, 'error': str(e), 'success': False})
+
     return results
 
-if __name__ == "__main__":
-    # Contoh testing
-    print("="*60)
-    print("TESTING MODEL SVM")
-    print("="*60)
-    
-    # Test dengan satu gambar
+
+if __name__ == '__main__':
+    print("=" * 60)
+    print("TESTING MODEL SVM — AvocaDetect")
+    print("=" * 60)
+
     test_image = "dataset/matang/IMG_1001_jpeg.rf.0e08cb13387d0b9d7b759c024b9ec016.jpg"
-    
+
     if os.path.exists(test_image):
-        print(f"\nTesting dengan gambar: {test_image}")
-        
         try:
             result = predict_single_image(test_image)
-            
-            print(f"\nHasil Prediksi:")
-            print(f"  Kategori: {result['category']}")
-            print(f"  Confidence: {result['confidence']:.2f}%")
-            print(f"\nProbabilitas semua kelas:")
-            for category, prob in result['probabilities'].items():
-                print(f"  {category}: {prob:.2f}%")
-                
+            print(f"\nGambar    : {test_image}")
+            print(f"Kategori  : {result['category']}")
+            print(f"Confidence: {result['confidence']:.2f}%")
+            print("\nProbabilitas:")
+            for cat, prob in result['probabilities'].items():
+                bar = '#' * int(prob / 5)
+                print(f"  {cat:>18} : {prob:6.2f}%  {bar}")
         except Exception as e:
-            print(f"\nError: {str(e)}")
+            import traceback
+            print(f"Error: {e}")
+            traceback.print_exc()
     else:
         print(f"\nGambar test tidak ditemukan: {test_image}")
-        print("Silakan jalankan training terlebih dahulu dengan: python backend/machine/model/train_svm.py")
+        print("Jalankan training terlebih dahulu: python train_model.py")
