@@ -66,8 +66,95 @@ function handleCamera() {
         return;
     }
     
-    // Request akses kamera
-    navigator.mediaDevices.getUserMedia({ video: true })
+    // Tampilkan loading
+    const previewContainer = document.querySelector('.preview-placeholder');
+    previewContainer.innerHTML = `
+        <div style="text-align: center;">
+            <div class="loading-spinner"></div>
+            <p style="margin-top: 1rem;">Memuat daftar kamera...</p>
+        </div>
+    `;
+    
+    // Dapatkan daftar semua kamera yang tersedia
+    navigator.mediaDevices.enumerateDevices()
+        .then(function(devices) {
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            
+            if (videoDevices.length === 0) {
+                alert('Tidak ada kamera yang terdeteksi di perangkat Anda!');
+                resetPreview();
+                return;
+            }
+            
+            // Tampilkan pilihan kamera
+            showCameraSelection(videoDevices);
+        })
+        .catch(function(error) {
+            console.error('Error enumerating devices:', error);
+            alert('Gagal mengakses daftar kamera.');
+            resetPreview();
+        });
+}
+
+// ===== Fungsi untuk Menampilkan Pilihan Kamera =====
+function showCameraSelection(videoDevices) {
+    const previewContainer = document.querySelector('.preview-placeholder');
+    
+    let optionsHTML = '';
+    videoDevices.forEach((device, index) => {
+        const label = device.label || `Kamera ${index + 1}`;
+        const isFrontCamera = label.toLowerCase().includes('front') || label.toLowerCase().includes('depan');
+        const isBackCamera = label.toLowerCase().includes('back') || label.toLowerCase().includes('belakang') || label.toLowerCase().includes('rear');
+        
+        let displayLabel = label;
+        if (isFrontCamera) {
+            displayLabel = `📱 ${label} (Depan)`;
+        } else if (isBackCamera) {
+            displayLabel = `📷 ${label} (Belakang)`;
+        }
+        
+        optionsHTML += `<option value="${device.deviceId}">${displayLabel}</option>`;
+    });
+    
+    previewContainer.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+            <h3 style="margin-bottom: 1rem; color: var(--dark-green);">Pilih Kamera</h3>
+            <select id="cameraSelect" style="
+                width: 100%;
+                max-width: 400px;
+                padding: 0.75rem;
+                font-size: 1rem;
+                border: 2px solid var(--primary-green);
+                border-radius: 8px;
+                margin-bottom: 1.5rem;
+                font-family: 'Poppins', sans-serif;
+                cursor: pointer;
+            ">
+                ${optionsHTML}
+            </select>
+            <div>
+                <button class="btn-primary" onclick="startSelectedCamera()" style="margin-right: 10px;">📸 Buka Kamera</button>
+                <button class="btn-secondary" onclick="resetPreview()">❌ Batal</button>
+            </div>
+        </div>
+    `;
+}
+
+// ===== Fungsi untuk Memulai Kamera yang Dipilih =====
+function startSelectedCamera() {
+    const select = document.getElementById('cameraSelect');
+    const deviceId = select.value;
+    
+    const constraints = {
+        video: {
+            deviceId: deviceId ? { exact: deviceId } : undefined,
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+        }
+    };
+    
+    // Request akses kamera dengan device ID yang dipilih
+    navigator.mediaDevices.getUserMedia(constraints)
         .then(function(stream) {
             // Buat elemen video untuk preview
             const previewContainer = document.querySelector('.preview-placeholder');
@@ -90,6 +177,7 @@ function handleCamera() {
         .catch(function(error) {
             console.error('Error accessing camera:', error);
             alert('Gagal mengakses kamera. Pastikan Anda memberikan izin akses kamera.');
+            resetPreview();
         });
 }
 
@@ -290,18 +378,19 @@ function showResultPopup(result, images) {
                 
                 <div class="probabilities-modern">
                     <h4>Probabilitas Klasifikasi</h4>
-                    <div class="prob-grid">
-                        ${Object.entries(result.probabilities).map(([cat, prob]) => `
-                            <div class="prob-item">
-                                <div class="prob-header">
-                                    <span class="prob-label">${cat}</span>
-                                    <span class="prob-value">${prob.toFixed(1)}%</span>
+                    <div class="prob-chart-container">
+                        <div class="prob-chart-wrapper">
+                            <canvas id="probChart"></canvas>
+                        </div>
+                        <div class="prob-legend">
+                            ${Object.entries(result.probabilities).map(([cat, prob]) => `
+                                <div class="legend-item">
+                                    <span class="legend-dot" style="background: ${colorMap[cat] || '#999'};"></span>
+                                    <span class="legend-label">${cat}</span>
+                                    <span class="legend-value">${prob.toFixed(1)}%</span>
                                 </div>
-                                <div class="prob-bar-container">
-                                    <div class="prob-bar" style="width: ${prob}%; background: ${colorMap[cat] || '#999'};"></div>
-                                </div>
-                            </div>
-                        `).join('')}
+                            `).join('')}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -318,6 +407,46 @@ function showResultPopup(result, images) {
     
     document.body.appendChild(overlay);
     setTimeout(() => overlay.classList.add('active'), 10);
+    
+    // Render donut chart setelah DOM ready
+    setTimeout(() => {
+        const ctx = document.getElementById('probChart');
+        if (ctx) {
+            const categories = Object.keys(result.probabilities);
+            const values = Object.values(result.probabilities);
+            const colors = categories.map(cat => colorMap[cat] || '#999');
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: categories,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors,
+                        borderWidth: 3,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed.toFixed(1) + '%';
+                                }
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+    }, 100);
 }
 
 // ===== Fungsi untuk Close Popup =====
@@ -588,10 +717,10 @@ style.textContent = `
     
     .popup-result-modern {
         background: linear-gradient(135deg, #fafafa, #f5f5f5);
-        padding: 2.5rem;
-        border-radius: 20px;
+        padding: 1.75rem 2rem;
+        border-radius: 18px;
         border-left: 5px solid #6B8E23;
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
         box-shadow: 0 2px 12px rgba(0,0,0,0.06);
     }
     
@@ -599,7 +728,7 @@ style.textContent = `
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 2.5rem;
+        margin-bottom: 1.75rem;
         padding-bottom: 0;
         border-bottom: none;
     }
@@ -632,88 +761,87 @@ style.textContent = `
     
     .probabilities-modern {
         background: white;
-        padding: 1.75rem;
-        border-radius: 16px;
+        padding: 1.5rem;
+        border-radius: 14px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
     
     .probabilities-modern h4 {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #666;
+        margin-bottom: 1.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        text-align: center;
+    }
+    
+    .prob-chart-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 2rem;
+        flex-wrap: wrap;
+    }
+    
+    .prob-chart-wrapper {
+        width: 180px;
+        height: 180px;
+        flex-shrink: 0;
+    }
+    
+    .prob-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+    
+    .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    
+    .legend-label {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #333;
+        flex: 1;
+    }
+    
+    .legend-value {
         font-size: 0.8rem;
         font-weight: 600;
         color: #666;
-        margin-bottom: 1.5rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    
-    .prob-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 1.25rem;
-    }
-    
-    .prob-item {
-        background: transparent;
-        padding: 0;
-        border-radius: 0;
-        box-shadow: none;
-        border-bottom: 1px solid #f0f0f0;
-        padding-bottom: 1.25rem;
-    }
-    
-    .prob-item:last-child {
-        border-bottom: none;
-        padding-bottom: 0;
-    }
-    
-    .prob-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.6rem;
-    }
-    
-    .prob-label {
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: #333;
-    }
-    
-    .prob-value {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: #666;
-    }
-    
-    .prob-bar-container {
-        background: #f5f5f5;
-        height: 6px;
-        border-radius: 10px;
-        overflow: hidden;
-    }
-    
-    .prob-bar {
-        height: 100%;
-        border-radius: 10px;
-        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     .btn-analyze-again {
         width: 100%;
+        max-width: 350px;
+        margin: 1rem auto 0;
         background: linear-gradient(135deg, #5a7a1f, #7fb82e);
         color: white;
-        padding: 1rem 2rem;
+        padding: 0.7rem 1.5rem;
         border: none;
         border-radius: 50px;
-        font-size: 1rem;
+        font-size: 0.9rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 0.6rem;
-        box-shadow: 0 4px 16px rgba(107, 142, 35, 0.25);
+        gap: 0.5rem;
+        box-shadow: 0 3px 12px rgba(107, 142, 35, 0.25);
         font-family: 'Poppins', sans-serif;
         position: relative;
         overflow: hidden;
@@ -775,6 +903,20 @@ style.textContent = `
         
         .confidence-value {
             font-size: 1.5rem;
+        }
+        
+        .prob-chart-container {
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .prob-chart-wrapper {
+            width: 160px;
+            height: 160px;
+        }
+        
+        .prob-legend {
+            width: 100%;
         }
         
         .popup-close {
