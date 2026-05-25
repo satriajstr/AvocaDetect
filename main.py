@@ -1,6 +1,6 @@
 import cv2
 import os
-from preprocessing import resize_image, to_grayscale, reduce_noise, segment_image
+from backend.machine.preprocessing import resize_image, to_grayscale, reduce_noise, segment_image
 
 DATASET_DIR = "dataset"
 OUTPUT_DIR  = os.path.join("output", "preprocessing")
