@@ -13,3 +13,8 @@ build/
 .venv
 .DS_Store
 *.log
+
+# Jangan ignore model yang sudah di-training
+# Model ini HARUS di-commit ke Git agar Railway bisa pakai
+# !backend/machine/model/*.pkl
+# !backend/machine/model/*.json

@@ -1,0 +1,48 @@
+{
+  "accuracy": 79.26,
+  "precision": 80.71,
+  "recall": 79.26,
+  "f1_score": 78.74,
+  "confusion_matrix": [
+    [
+      60,
+      4,
+      0,
+      2
+    ],
+    [
+      2,
+      22,
+      2,
+      1
+    ],
+    [
+      0,
+      10,
+      40,
+      25
+    ],
+    [
+      1,
+      2,
+      7,
+      92
+    ]
+  ],
+  "categories": [
+    "Mentah",
+    "Setengah Matang",
+    "Matang",
+    "Terlalu Matang"
+  ],
+  "n_train": 1079,
+  "n_test": 270,
+  "n_features": 12,
+  "model_params": {
+    "kernel": "rbf",
+    "C": 10,
+    "gamma": "scale",
+    "probability": true,
+    "class_weight": "balanced"
+  }
+}
