@@ -16,7 +16,7 @@ def save(path, image):
 def preprocess_image(img_path):
     """
     Jalankan full pipeline preprocessing pada satu gambar.
-    Return dict berisi setiap tahap hasil preprocessing.
+    Return dict berisi setiap tahap hasil preprocessing
     """
     image = cv2.imread(img_path)
     if image is None:
