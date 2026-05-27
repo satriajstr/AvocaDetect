@@ -9,6 +9,16 @@
 // - Memory management untuk chart instances
 // - Notifikasi dengan icon dan styling modern
 
+// ===== Simpan URL kamera.png dari DOM yang di-render Flask =====
+// Ini memastikan resetPreview() selalu pakai URL yang benar
+let kameraPngUrl = '/static/images/kamera.png'; // fallback default
+document.addEventListener('DOMContentLoaded', function() {
+    const kameraImg = document.querySelector('.preview-icon-img');
+    if (kameraImg && kameraImg.src) {
+        kameraPngUrl = kameraImg.src;
+    }
+});
+
 // ===== Paksa scroll ke atas saat pertama kali load =====
 // Tanpa ini, browser menyimpan posisi scroll sebelumnya
 // sehingga tampilan awal berbeda dari klik "Beranda"
@@ -250,11 +260,8 @@ function resetPreview() {
     const previewContainer = document.querySelector('.preview-placeholder');
     if (!previewContainer) return;
     
-    // Ambil base URL untuk path gambar
-    const baseUrl = window.location.origin;
-    
     previewContainer.innerHTML = `
-        <img src="${baseUrl}/static/images/kamera.png" alt="camera" class="preview-icon-img" style="height: 10rem; width: auto; margin-bottom: 1rem;">
+        <img src="${kameraPngUrl}" alt="camera" class="preview-icon-img" style="height: 10rem; width: auto; margin-bottom: 1rem;">
         <p>Area Preview Kamera</p>
         <p class="preview-hint">Upload gambar atau aktifkan kamera</p>
     `;
