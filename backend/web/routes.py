@@ -223,6 +223,7 @@ def detect():
             compute_glcm_matrix,
             extract_features_from_glcm,
             get_feature_dict,
+            create_glcm_visualization,
         )
 
         glcm          = compute_glcm_matrix(roi_normalized)
@@ -292,28 +293,9 @@ def detect():
         # [6] Contour Overlay — original + outline kuning
         img6_contour = img_to_base64(contour_overlay)
 
-        # [7] GLCM Heatmap (MAGMA colormap → terlihat lebih ilmiah)
-        glcm_2d         = glcm[:, :, 0, 0]   # distance=1, angle=0°
-        glcm_norm       = (glcm_2d / (glcm_2d.max() + 1e-10) * 255).astype(np.uint8)
-        glcm_resized    = cv2.resize(glcm_norm, (512, 512), interpolation=cv2.INTER_NEAREST)
-        glcm_colored    = cv2.applyColorMap(glcm_resized, cv2.COLORMAP_MAGMA)
-
-        # Tambah grid tipis untuk tampilan matriks yang lebih profesional
-        step = 512 // 8
-        for i in range(0, 512, step):
-            cv2.line(glcm_colored, (i, 0), (i, 511), (60, 60, 60), 1)
-            cv2.line(glcm_colored, (0, i), (511, i), (60, 60, 60), 1)
-
-        # Tambah border
-        cv2.rectangle(glcm_colored, (0, 0), (511, 511), (100, 100, 100), 2)
-
-        # Thumbnail ROI di pojok kanan bawah
-        roi_thumb = cv2.resize(roi_normalized, (96, 96), interpolation=cv2.INTER_NEAREST)
-        roi_thumb_bgr = cv2.cvtColor(roi_thumb, cv2.COLOR_GRAY2BGR)
-        glcm_colored[410:506, 410:506] = roi_thumb_bgr
-        cv2.rectangle(glcm_colored, (409, 409), (507, 507), (255, 255, 255), 1)
-
-        img7_glcm = img_to_base64(glcm_colored)
+        # [7] GLCM Heatmap - Gunakan fungsi visualisasi yang lebih baik
+        glcm_visualization = create_glcm_visualization(glcm, roi_normalized, size=512)
+        img7_glcm = img_to_base64(glcm_visualization)
 
         # [8] Hasil SVM — original + border warna + teks prediksi
         result_img = original_resized.copy()

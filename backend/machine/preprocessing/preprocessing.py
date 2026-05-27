@@ -6,6 +6,20 @@ Pipeline Pengolahan Citra untuk Klasifikasi Kematangan Alpukat
 Pipeline Lengkap:
   Input → Enhancement → Resize → Grayscale → Noise Reduction
         → Segmentasi → Morfologi → Masking → ROI Crop
+        → Texture Enhancement → GLCM
+
+PERBAIKAN SEGMENTASI:
+  - Segmentasi HANYA menghasilkan binary mask (255=objek, 0=background)
+  - Tekstur asli alpukat TIDAK DIUBAH sama sekali
+  - Masking dengan bitwise_and mempertahankan detail tekstur permukaan
+  - Background menjadi hitam, objek tetap memiliki variasi intensitas asli
+  - Morfologi lengkap (closing + opening + largest component) untuk mask bersih
+
+PERBAIKAN GLCM:
+  - CLAHE untuk meningkatkan kontras lokal tekstur
+  - Unsharp masking untuk mempertajam detail permukaan
+  - Enhancement dilakukan SETELAH masking, SEBELUM normalisasi GLCM
+  - Hasil: GLCM matrix lebih kaya informasi tekstur
 
 Catatan Dataset:
   - Background  : cream / putih terang
@@ -191,12 +205,15 @@ def segment_image(denoised_gray):
     - Background (cream/putih) memiliki tekstur seragam yang berbeda dari alpukat
     - Jika background ikut dalam GLCM, fitur tekstur menjadi bias
     - Segmentasi memastikan GLCM hanya menganalisis tekstur objek alpukat
+    
+    PENTING: Segmentasi HANYA menghasilkan mask untuk memisahkan objek dari background.
+    Tekstur asli alpukat TIDAK diubah sama sekali!
 
     Strategi untuk background cream:
     - Background terang (cream/putih) → intensitas tinggi
     - Alpukat (gelap: hijau tua, hitam, cokelat) → intensitas rendah
-    - THRESH_BINARY_INV: piksel gelap (alpukat) → 255 (putih/objek) [OK]
-    - THRESH_BINARY_INV: piksel terang (background) → 0 (hitam) [OK]
+    - THRESH_BINARY_INV: piksel gelap (alpukat) → 255 (putih/objek)
+    - THRESH_BINARY_INV: piksel terang (background) → 0 (hitam)
 
     Pipeline Morfologi:
     1. Otsu: binarisasi adaptif otomatis
@@ -213,29 +230,29 @@ def segment_image(denoised_gray):
     -------
     clean_mask : binary mask uint8 (255=objek, 0=background)
     """
-    # --- Otsu Thresholding (gunakan cv2 yang sudah optimized) ---
+    # Otsu Thresholding
     _, binary = cv2.threshold(
         denoised_gray, 0, 255,
         cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
     )
 
-    # --- Morphological Closing ---
+    # Morphological Closing - tutup lubang kecil
     kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
-    closed = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel_close, iterations=3)
+    closed = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel_close, iterations=2)
 
-    # --- Morphological Opening ---
+    # Morphological Opening - hapus noise
     kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
     opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel_open, iterations=1)
 
-    # --- Ambil Komponen Terbesar ---
-    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(opened)
+    # Ambil Komponen Terbesar
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(opened, connectivity=8)
     if num_labels > 1:
         largest_label = 1 + np.argmax(stats[1:, cv2.CC_STAT_AREA])
         clean_mask = np.where(labels == largest_label, 255, 0).astype(np.uint8)
     else:
         clean_mask = opened
 
-    # --- Dilasi Kecil ---
+    # Dilasi Kecil - pastikan tepi tidak terpotong
     kernel_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     clean_mask = cv2.dilate(clean_mask, kernel_dilate, iterations=1)
 
@@ -391,6 +408,44 @@ def preprocess_image(image):
 # 8. NORMALISASI ROI UNTUK GLCM
 # =============================================================================
 
+def enhance_texture_for_glcm(roi):
+    """
+    Tingkatkan detail tekstur pada ROI sebelum ekstraksi GLCM.
+    
+    Teknik yang digunakan:
+    1. Histogram equalization untuk meningkatkan kontras lokal
+    2. Unsharp masking untuk mempertajam detail tekstur
+    
+    Mengapa enhancement diperlukan?
+    - Tekstur kulit alpukat kadang memiliki kontras rendah
+    - Enhancement membuat pola tekstur lebih jelas untuk GLCM
+    - Meningkatkan separabilitas antar kelas kematangan
+    
+    Parameters
+    ----------
+    roi : gambar grayscale ROI (hasil masking)
+    
+    Returns
+    -------
+    enhanced : ROI dengan tekstur yang lebih jelas
+    """
+    # CLAHE untuk meningkatkan kontras lokal
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    enhanced = clahe.apply(roi)
+    
+    # Unsharp masking untuk mempertajam tekstur
+    # 1. Blur gambar
+    blurred = cv2.GaussianBlur(enhanced, (0, 0), 2.0)
+    # 2. Hitung detail = original - blurred
+    # 3. Tambahkan detail ke original dengan weight
+    enhanced = cv2.addWeighted(enhanced, 1.5, blurred, -0.5, 0)
+    
+    # Clip ke range [0, 255]
+    enhanced = np.clip(enhanced, 0, 255).astype(np.uint8)
+    
+    return enhanced
+
+
 def normalize_for_glcm(roi, levels=32):
     """
     Kuantisasi intensitas ROI ke rentang [0, levels-1] untuk GLCM dengan perhitungan manual.
@@ -416,8 +471,11 @@ def normalize_for_glcm(roi, levels=32):
     -------
     normalized : gambar uint8 dengan nilai [0, levels-1]
     """
+    # Enhancement tekstur sebelum normalisasi
+    roi_enhanced = enhance_texture_for_glcm(roi)
+    
     # Konversi ke float untuk perhitungan presisi tinggi
-    roi_float = roi.astype(np.float32)
+    roi_float = roi_enhanced.astype(np.float32)
     
     # Cari nilai minimum dan maksimum (manual)
     roi_min = np.min(roi_float)

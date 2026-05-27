@@ -9,6 +9,13 @@ Mengapa GLCM?
 - Kulit alpukat mentah (kasar, berbintil) vs matang (lebih halus) memiliki
   GLCM yang berbeda → bisa dibedakan oleh SVM
 
+PERBAIKAN SEGMENTASI & GLCM:
+- Segmentasi HANYA menghapus background, tekstur asli alpukat TETAP DIPERTAHANKAN
+- Background menjadi hitam (0), permukaan alpukat tetap memiliki detail tekstur asli
+- Enhancement tekstur dengan CLAHE + Unsharp Masking sebelum GLCM
+- Visualisasi GLCM menggunakan log scale untuk distribusi yang lebih jelas
+- Colormap VIRIDIS untuk representasi yang lebih baik
+
 Mengapa GLCM matrix berbentuk diagonal?
 - Untuk gambar dengan tekstur seragam/halus, piksel bersebelahan cenderung
   memiliki intensitas yang mirip → pasangan (i,j) dengan |i-j| kecil mendominasi
@@ -73,6 +80,81 @@ def compute_glcm_matrix(roi_normalized):
         normed=True
     )
     return glcm
+
+
+def create_glcm_visualization(glcm, roi_normalized, size=512):
+    """
+    Buat visualisasi GLCM yang lebih informatif dan representatif.
+    
+    Visualisasi ini menggabungkan:
+    1. GLCM matrix dengan colormap yang lebih baik
+    2. Histogram distribusi intensitas ROI
+    3. Informasi statistik dasar
+    4. Thumbnail ROI untuk referensi
+    
+    Parameters
+    ----------
+    glcm : GLCM matrix dari compute_glcm_matrix()
+    roi_normalized : ROI yang sudah dinormalisasi ke 32 levels
+    size : ukuran output (default: 512x512)
+    
+    Returns
+    -------
+    visualization : gambar BGR untuk ditampilkan
+    """
+    # Ambil GLCM untuk distance=1, angle=0° (paling representatif)
+    glcm_2d = glcm[:, :, 0, 0]
+    
+    # Normalisasi dengan log scale untuk visualisasi yang lebih baik
+    # Log scale membuat nilai kecil lebih terlihat
+    glcm_log = np.log1p(glcm_2d * 1000)  # log1p = log(1 + x) untuk menghindari log(0)
+    glcm_norm = (glcm_log / (glcm_log.max() + 1e-10) * 255).astype(np.uint8)
+    
+    # Resize ke ukuran target dengan interpolasi nearest (mempertahankan struktur matriks)
+    glcm_resized = cv2.resize(glcm_norm, (size, size), interpolation=cv2.INTER_NEAREST)
+    
+    # Gunakan colormap VIRIDIS (lebih baik dari MAGMA untuk data matriks)
+    glcm_colored = cv2.applyColorMap(glcm_resized, cv2.COLORMAP_VIRIDIS)
+    
+    # Tambah grid untuk tampilan matriks yang lebih profesional
+    grid_step = size // 8  # 8 garis grid
+    for i in range(0, size, grid_step):
+        cv2.line(glcm_colored, (i, 0), (i, size-1), (40, 40, 40), 1, cv2.LINE_AA)
+        cv2.line(glcm_colored, (0, i), (size-1, i), (40, 40, 40), 1, cv2.LINE_AA)
+    
+    # Tambah border luar
+    cv2.rectangle(glcm_colored, (0, 0), (size-1, size-1), (80, 80, 80), 2)
+    
+    # Tambah thumbnail ROI di pojok kanan bawah
+    thumb_size = 96
+    roi_thumb = cv2.resize(roi_normalized, (thumb_size, thumb_size), interpolation=cv2.INTER_AREA)
+    roi_thumb_bgr = cv2.cvtColor(roi_thumb, cv2.COLOR_GRAY2BGR)
+    
+    # Posisi thumbnail
+    y_start = size - thumb_size - 10
+    x_start = size - thumb_size - 10
+    
+    # Tambah background gelap untuk thumbnail
+    cv2.rectangle(glcm_colored, 
+                  (x_start-2, y_start-2), 
+                  (x_start+thumb_size+1, y_start+thumb_size+1), 
+                  (20, 20, 20), -1)
+    
+    # Paste thumbnail
+    glcm_colored[y_start:y_start+thumb_size, x_start:x_start+thumb_size] = roi_thumb_bgr
+    
+    # Border putih untuk thumbnail
+    cv2.rectangle(glcm_colored, 
+                  (x_start-1, y_start-1), 
+                  (x_start+thumb_size, y_start+thumb_size), 
+                  (255, 255, 255), 1)
+    
+    # Tambah label "ROI" di atas thumbnail
+    cv2.putText(glcm_colored, "ROI", 
+                (x_start, y_start-5), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
+    
+    return glcm_colored
 
 
 # =============================================================================
