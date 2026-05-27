@@ -1,4 +1,21 @@
 /* ===== Reset & Base Styles ===== */
+/*
+ * PERBAIKAN UI/UX POPUP HASIL ANALISA
+ * 
+ * Perubahan yang dilakukan:
+ * 1. Responsive Design - Layout mobile/tablet yang lebih baik
+ * 2. Visual Hierarchy - Typography dan spacing yang lebih jelas
+ * 3. Modern Aesthetics - Shadow, gradient, dan animasi yang halus
+ * 4. Accessibility - Focus states, keyboard navigation, screen reader support
+ * 5. Performance - Optimasi animasi dan rendering
+ * 
+ * Fokus utama:
+ * - Semua elemen tetap di dalam card/container di mobile
+ * - Chart dan legend responsive dengan baik
+ * - Spacing dan padding proporsional di semua ukuran layar
+ * - Tampilan profesional dan clean
+ */
+
 * {
     margin: 0;
     padding: 0;
@@ -981,5 +998,624 @@ html {
 
     .footer-section p {
         font-size: 0.85rem;
+    }
+}
+
+
+/* ===== POPUP HASIL ANALISA - ENHANCEMENT ===== */
+
+/* Animasi untuk popup overlay */
+@keyframes popupFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes popupSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Loading overlay enhancement */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.loading-overlay.active {
+    opacity: 1;
+}
+
+.loading-popup {
+    background: white;
+    padding: 3rem 4rem;
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    text-align: center;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.loading-overlay.active .loading-popup {
+    transform: scale(1);
+}
+
+.loading-avocado {
+    font-size: 100px;
+    animation: floatLoading 2s ease-in-out infinite;
+    margin-bottom: 1rem;
+    line-height: 1;
+}
+
+@keyframes floatLoading {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-15px) rotate(5deg);
+    }
+}
+
+.loading-text {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--dark-green);
+    margin: 0;
+}
+
+/* Popup overlay enhancement */
+.popup-overlay {
+    animation: popupFadeIn 0.3s ease;
+}
+
+.popup-overlay.active .popup-content-modern {
+    animation: popupSlideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Gradient background untuk card */
+.result-main-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.result-main-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 150px;
+    height: 150px;
+    background: radial-gradient(circle, rgba(107, 142, 35, 0.08) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+/* Hover effect untuk pipeline items */
+.pipeline-item {
+    cursor: pointer;
+    position: relative;
+}
+
+.pipeline-item::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(107, 142, 35, 0.1), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: 12px;
+    pointer-events: none;
+}
+
+.pipeline-item:hover::after {
+    opacity: 1;
+}
+
+/* Animasi untuk legend items */
+.legend-item-modern {
+    animation: slideInRight 0.4s ease backwards;
+}
+
+.legend-item-modern:nth-child(1) { animation-delay: 0.1s; }
+.legend-item-modern:nth-child(2) { animation-delay: 0.2s; }
+.legend-item-modern:nth-child(3) { animation-delay: 0.3s; }
+.legend-item-modern:nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Animasi untuk pipeline grid */
+.pipeline-item {
+    animation: fadeInScale 0.5s ease backwards;
+}
+
+.pipeline-item:nth-child(1) { animation-delay: 0.1s; }
+.pipeline-item:nth-child(2) { animation-delay: 0.15s; }
+.pipeline-item:nth-child(3) { animation-delay: 0.2s; }
+.pipeline-item:nth-child(4) { animation-delay: 0.25s; }
+.pipeline-item:nth-child(5) { animation-delay: 0.3s; }
+.pipeline-item:nth-child(6) { animation-delay: 0.35s; }
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Pulse animation untuk confidence badge */
+.result-confidence-badge {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(107, 142, 35, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(107, 142, 35, 0);
+    }
+}
+
+/* Smooth scroll untuk popup content */
+.popup-content-modern {
+    scroll-behavior: smooth;
+}
+
+/* Better focus states */
+.popup-close:focus,
+.btn-analyze-again-modern:focus {
+    outline: 3px solid rgba(107, 142, 35, 0.5);
+    outline-offset: 2px;
+}
+
+/* Loading spinner enhancement */
+.loading-spinner {
+    border: 4px solid var(--gray-light);
+    border-top: 4px solid var(--primary-green);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Notification styles */
+.notification {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    background: var(--primary-green);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    z-index: 9999;
+    animation: slideInNotif 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-width: 320px;
+    font-weight: 500;
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+@keyframes slideInNotif {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutNotif {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+
+/* Simple popup styles */
+.simple-popup {
+    animation: popupBounceIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes popupBounceIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* Responsive enhancements untuk mobile */
+@media (max-width: 480px) {
+    .loading-popup {
+        padding: 2rem 2.5rem;
+        margin: 0 1rem;
+    }
+    
+    .loading-avocado {
+        font-size: 80px;
+    }
+    
+    .loading-text {
+        font-size: 1rem;
+    }
+    
+    .notification {
+        right: 10px;
+        left: 10px;
+        max-width: none;
+        font-size: 0.9rem;
+    }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    .popup-overlay,
+    .popup-content-modern,
+    .legend-item-modern,
+    .pipeline-item,
+    .result-confidence-badge,
+    .loading-avocado,
+    .notification,
+    .simple-popup {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* Print styles untuk popup */
+@media print {
+    .popup-overlay {
+        position: relative;
+        background: white;
+    }
+    
+    .popup-close,
+    .btn-analyze-again-modern {
+        display: none;
+    }
+    
+    .popup-content-modern {
+        box-shadow: none;
+        max-height: none;
+    }
+}
+
+
+/* ===== VISUAL ENHANCEMENTS UNTUK POPUP ===== */
+
+/* Improved shadow system */
+.probabilities-card,
+.pipeline-card {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
+    transition: box-shadow 0.3s ease;
+}
+
+.probabilities-card:hover,
+.pipeline-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.06), 0 8px 20px rgba(0,0,0,0.08);
+}
+
+/* Better border styling */
+.result-main-card {
+    border-left-width: 5px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08);
+}
+
+/* Improved typography hierarchy */
+.popup-header h2 {
+    letter-spacing: -0.5px;
+}
+
+.card-title {
+    letter-spacing: -0.3px;
+}
+
+/* Better spacing for legend items */
+.legend-item-modern {
+    border: 1px solid transparent;
+}
+
+.legend-item-modern:hover {
+    border-color: rgba(107, 142, 35, 0.2);
+    background: #f1f3f5;
+}
+
+/* Improved pipeline image wrapper */
+.pipeline-image-wrapper {
+    position: relative;
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+}
+
+.pipeline-image-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 1px solid rgba(0,0,0,0.05);
+    pointer-events: none;
+}
+
+/* Better button styling */
+.btn-analyze-again-modern {
+    letter-spacing: 0.3px;
+    text-transform: none;
+}
+
+.btn-analyze-again-modern span {
+    position: relative;
+    z-index: 1;
+}
+
+/* Improved close button */
+.popup-close {
+    font-family: Arial, sans-serif;
+    line-height: 1;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.popup-close:hover {
+    color: #FF6B6B;
+}
+
+/* Better scrollbar for all browsers */
+.popup-content-modern {
+    scrollbar-width: thin;
+    scrollbar-color: #6B8E23 #f1f1f1;
+}
+
+/* Improved result icon */
+.result-icon {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transition: transform 0.3s ease;
+}
+
+.result-main-card:hover .result-icon {
+    transform: scale(1.05);
+}
+
+/* Better confidence badge */
+.result-confidence-badge {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* Improved header badge */
+.header-badge {
+    box-shadow: 0 2px 6px rgba(107, 142, 35, 0.25);
+}
+
+/* Better card borders */
+.probabilities-card,
+.pipeline-card {
+    border-color: rgba(0,0,0,0.06);
+}
+
+/* Improved legend bar animation */
+.legend-bar-fill {
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Better pipeline number badge */
+.pipeline-number {
+    box-shadow: 0 2px 6px rgba(107, 142, 35, 0.3);
+}
+
+/* Improved overlay backdrop */
+.popup-overlay {
+    background: rgba(0, 0, 0, 0.88);
+}
+
+/* Better loading popup */
+.loading-popup {
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+/* Smooth transitions untuk semua interactive elements */
+.legend-item-modern,
+.pipeline-item,
+.btn-analyze-again-modern,
+.popup-close,
+.result-icon {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Improved focus visible untuk accessibility */
+.popup-close:focus-visible,
+.btn-analyze-again-modern:focus-visible {
+    outline: 3px solid rgba(107, 142, 35, 0.6);
+    outline-offset: 3px;
+}
+
+/* Better text rendering */
+.popup-content-modern {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* Improved color contrast untuk accessibility */
+.popup-subtitle {
+    color: #64748b;
+}
+
+.result-label {
+    color: #64748b;
+}
+
+.legend-label {
+    color: #1e293b;
+}
+
+/* Better spacing untuk mobile */
+@media (max-width: 480px) {
+    .popup-content-modern {
+        border-radius: 12px;
+    }
+    
+    .result-main-card {
+        border-left-width: 4px;
+    }
+    
+    .popup-close:hover {
+        transform: rotate(90deg) scale(1.05);
+    }
+}
+
+/* Improved dark mode support (jika diperlukan di masa depan) */
+@media (prefers-color-scheme: dark) {
+    /* Placeholder untuk dark mode */
+}
+
+/* Better high contrast mode support */
+@media (prefers-contrast: high) {
+    .popup-content-modern {
+        border: 2px solid #000;
+    }
+    
+    .result-main-card,
+    .probabilities-card,
+    .pipeline-card {
+        border: 2px solid #000;
+    }
+    
+    .legend-item-modern {
+        border: 1px solid #000;
+    }
+}
+
+/* Improved animation performance */
+.popup-overlay,
+.popup-content-modern,
+.legend-item-modern,
+.pipeline-item {
+    will-change: transform, opacity;
+}
+
+.popup-overlay.active,
+.popup-content-modern {
+    will-change: auto;
+}
+
+/* Better touch targets untuk mobile */
+@media (max-width: 768px) {
+    .popup-close {
+        min-width: 44px;
+        min-height: 44px;
+    }
+    
+    .btn-analyze-again-modern {
+        min-height: 48px;
+    }
+}
+
+/* Improved gradient backgrounds */
+.popup-header {
+    background: linear-gradient(135deg, #fafbfc 0%, #ffffff 100%);
+}
+
+.result-main-card {
+    background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+}
+
+/* Better image loading state */
+.pipeline-image-wrapper img {
+    background: linear-gradient(135deg, #f1f3f5 0%, #e9ecef 100%);
+}
+
+/* Improved empty state handling */
+.pipeline-image-wrapper:empty::before {
+    content: '⏳';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2rem;
+    opacity: 0.3;
+}
+
+/* Better error state */
+.pipeline-image-wrapper img[src=""],
+.pipeline-image-wrapper img:not([src]) {
+    opacity: 0.5;
+}
+
+/* Improved selection styling */
+.popup-content-modern ::selection {
+    background: rgba(107, 142, 35, 0.3);
+    color: inherit;
+}
+
+/* Better print layout */
+@media print {
+    .popup-overlay {
+        background: white;
+        position: static;
+    }
+    
+    .popup-content-modern {
+        max-width: 100%;
+        box-shadow: none;
+        page-break-inside: avoid;
+    }
+    
+    .pipeline-grid {
+        page-break-inside: avoid;
+    }
+    
+    .probabilities-card {
+        page-break-inside: avoid;
     }
 }

@@ -1,3 +1,14 @@
+// ===== AvocaDetect - Main JavaScript =====
+// Aplikasi Klasifikasi Kematangan Alpukat
+// 
+// PERBAIKAN UI/UX POPUP HASIL ANALISA:
+// - Responsive chart dengan deteksi ukuran layar
+// - Layout mobile yang lebih proporsional
+// - Animasi dan transisi yang smooth
+// - Event listeners untuk ESC key dan click outside
+// - Memory management untuk chart instances
+// - Notifikasi dengan icon dan styling modern
+
 // ===== Paksa scroll ke atas saat pertama kali load =====
 // Tanpa ini, browser menyimpan posisi scroll sebelumnya
 // sehingga tampilan awal berbeda dari klik "Beranda"
@@ -366,74 +377,122 @@ function showResultPopup(result, images) {
         <div class="popup-content-modern">
             <button class="popup-close" onclick="closePopup()">&times;</button>
             
+            <!-- Header -->
             <div class="popup-header">
-                <h2>Hasil Analisis Klasifikasi</h2>
+                <div class="header-badge">Hasil Analisis</div>
+                <h2>Klasifikasi Kematangan Alpukat</h2>
                 <p class="popup-subtitle">Pipeline: Input → Resize → Grayscale → Noise Reduction → Segmentasi → GLCM → SVM</p>
             </div>
             
-            <div class="popup-images-grid-6">
-                <div class="popup-image-item">
-                    <img src="${images.original}" alt="Original">
-                    <p>1. Citra Asli</p>
+            <!-- Hasil Utama -->
+            <div class="result-main-card" style="border-color: ${categoryColor};">
+                <div class="result-icon" style="background: ${categoryColor}20;">
+                    <span style="color: ${categoryColor};">🥑</span>
                 </div>
-                <div class="popup-image-item">
-                    <img src="${images.grayscale}" alt="Grayscale">
-                    <p>2. Grayscale</p>
-                </div>
-                <div class="popup-image-item">
-                    <img src="${images.denoised}" alt="Denoised">
-                    <p>3. Noise Reduction</p>
-                </div>
-                <div class="popup-image-item">
-                    <img src="${images.segmentation}" alt="Segmentation">
-                    <p>4. Segmentasi</p>
-                </div>
-                <div class="popup-image-item">
-                    <img src="${images.glcm}" alt="GLCM">
-                    <p>5. GLCM Matrix</p>
-                </div>
-                <div class="popup-image-item">
-                    <img src="${images.svm}" alt="SVM">
-                    <p>6. Hasil SVM</p>
+                <div class="result-info">
+                    <div class="result-label">Tingkat Kematangan</div>
+                    <div class="result-category" style="color: ${categoryColor};">${result.category}</div>
+                    <div class="result-confidence-badge" style="background: ${categoryColor}; color: white;">
+                        <span class="confidence-icon">✓</span>
+                        <span>${result.confidence.toFixed(1)}% Confidence</span>
+                    </div>
                 </div>
             </div>
             
-            <div class="popup-result-modern" style="border-left-color: ${categoryColor};">
-                <div class="result-header">
-                    <div class="result-category" style="color: ${categoryColor};">
-                        ${result.category}
+            <!-- Probabilitas Chart -->
+            <div class="probabilities-card">
+                <h3 class="card-title">Distribusi Probabilitas</h3>
+                <div class="prob-content">
+                    <div class="prob-chart-section">
+                        <canvas id="probChart"></canvas>
                     </div>
-                    <div class="result-confidence">
-                        <span class="confidence-label">Confidence</span>
-                        <span class="confidence-value" style="color: ${categoryColor};">${result.confidence.toFixed(1)}%</span>
-                    </div>
-                </div>
-                
-                <div class="probabilities-modern">
-                    <h4>Probabilitas Klasifikasi</h4>
-                    <div class="prob-chart-container">
-                        <div class="prob-chart-wrapper">
-                            <canvas id="probChart"></canvas>
-                        </div>
-                        <div class="prob-legend">
-                            ${Object.entries(result.probabilities).map(([cat, prob]) => `
-                                <div class="legend-item">
+                    <div class="prob-legend-section">
+                        ${Object.entries(result.probabilities).map(([cat, prob]) => `
+                            <div class="legend-item-modern">
+                                <div class="legend-left">
                                     <span class="legend-dot" style="background: ${colorMap[cat] || '#999'};"></span>
                                     <span class="legend-label">${cat}</span>
-                                    <span class="legend-value">${prob.toFixed(1)}%</span>
                                 </div>
-                            `).join('')}
+                                <div class="legend-right">
+                                    <span class="legend-value">${prob.toFixed(1)}%</span>
+                                    <div class="legend-bar">
+                                        <div class="legend-bar-fill" style="width: ${prob}%; background: ${colorMap[cat] || '#999'};"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pipeline Images -->
+            <div class="pipeline-card">
+                <h3 class="card-title">Tahapan Preprocessing & Analisis</h3>
+                <div class="pipeline-grid">
+                    <div class="pipeline-item">
+                        <div class="pipeline-image-wrapper">
+                            <img src="${images.original}" alt="Original">
+                        </div>
+                        <div class="pipeline-label">
+                            <span class="pipeline-number">1</span>
+                            <span class="pipeline-text">Citra Asli</span>
+                        </div>
+                    </div>
+                    <div class="pipeline-item">
+                        <div class="pipeline-image-wrapper">
+                            <img src="${images.grayscale}" alt="Grayscale">
+                        </div>
+                        <div class="pipeline-label">
+                            <span class="pipeline-number">2</span>
+                            <span class="pipeline-text">Grayscale</span>
+                        </div>
+                    </div>
+                    <div class="pipeline-item">
+                        <div class="pipeline-image-wrapper">
+                            <img src="${images.denoised}" alt="Denoised">
+                        </div>
+                        <div class="pipeline-label">
+                            <span class="pipeline-number">3</span>
+                            <span class="pipeline-text">Noise Reduction</span>
+                        </div>
+                    </div>
+                    <div class="pipeline-item">
+                        <div class="pipeline-image-wrapper">
+                            <img src="${images.segmentation}" alt="Segmentation">
+                        </div>
+                        <div class="pipeline-label">
+                            <span class="pipeline-number">4</span>
+                            <span class="pipeline-text">Segmentasi</span>
+                        </div>
+                    </div>
+                    <div class="pipeline-item">
+                        <div class="pipeline-image-wrapper">
+                            <img src="${images.glcm}" alt="GLCM">
+                        </div>
+                        <div class="pipeline-label">
+                            <span class="pipeline-number">5</span>
+                            <span class="pipeline-text">GLCM Matrix</span>
+                        </div>
+                    </div>
+                    <div class="pipeline-item">
+                        <div class="pipeline-image-wrapper">
+                            <img src="${images.svm}" alt="SVM">
+                        </div>
+                        <div class="pipeline-label">
+                            <span class="pipeline-number">6</span>
+                            <span class="pipeline-text">Hasil SVM</span>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <button class="btn-analyze-again" onclick="analyzeAgain()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+            <!-- Action Button -->
+            <button class="btn-analyze-again-modern" onclick="analyzeAgain()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="23 4 23 10 17 10"></polyline>
                     <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
                 </svg>
-                <span>Analisa Kembali</span>
+                <span>Analisa Gambar Lain</span>
             </button>
         </div>
     `;
@@ -441,7 +500,7 @@ function showResultPopup(result, images) {
     document.body.appendChild(overlay);
     setTimeout(() => overlay.classList.add('active'), 10);
     
-    // Render donut chart setelah DOM ready
+    // Render donut chart dengan responsive sizing
     setTimeout(() => {
         const ctx = document.getElementById('probChart');
         if (ctx) {
@@ -449,25 +508,52 @@ function showResultPopup(result, images) {
             const values = Object.values(result.probabilities);
             const colors = categories.map(cat => colorMap[cat] || '#999');
             
-            new Chart(ctx, {
+            // Deteksi ukuran layar untuk responsive chart
+            const isMobile = window.innerWidth <= 480;
+            const isTablet = window.innerWidth > 480 && window.innerWidth <= 768;
+            
+            // Destroy chart sebelumnya jika ada
+            if (window.currentChart) {
+                window.currentChart.destroy();
+            }
+            
+            // Buat chart baru dan simpan instance-nya
+            window.currentChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: categories,
                     datasets: [{
                         data: values,
                         backgroundColor: colors,
-                        borderWidth: 3,
-                        borderColor: '#fff'
+                        borderWidth: 0,
+                        hoverBorderWidth: isMobile ? 2 : 3,
+                        hoverBorderColor: '#fff',
+                        borderRadius: 4
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
+                    aspectRatio: 1,
                     plugins: {
                         legend: {
                             display: false
                         },
                         tooltip: {
+                            enabled: !isMobile, // Disable tooltip di mobile untuk performa
+                            backgroundColor: 'rgba(0,0,0,0.85)',
+                            padding: isMobile ? 8 : 12,
+                            titleFont: {
+                                size: isMobile ? 12 : 14,
+                                weight: '600',
+                                family: 'Poppins'
+                            },
+                            bodyFont: {
+                                size: isMobile ? 11 : 13,
+                                family: 'Poppins'
+                            },
+                            cornerRadius: 8,
+                            displayColors: true,
                             callbacks: {
                                 label: function(context) {
                                     return context.label + ': ' + context.parsed.toFixed(1) + '%';
@@ -475,7 +561,17 @@ function showResultPopup(result, images) {
                             }
                         }
                     },
-                    cutout: '65%'
+                    cutout: isMobile ? '65%' : '70%',
+                    animation: {
+                        animateRotate: true,
+                        animateScale: true,
+                        duration: 800,
+                        easing: 'easeInOutQuart'
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'nearest'
+                    }
                 }
             });
         }
@@ -487,9 +583,33 @@ function closePopup() {
     const overlay = document.querySelector('.popup-overlay');
     if (overlay) {
         overlay.classList.remove('active');
-        setTimeout(() => overlay.remove(), 300);
+        setTimeout(() => {
+            overlay.remove();
+            // Cleanup chart instance jika ada
+            if (window.currentChart) {
+                window.currentChart.destroy();
+                window.currentChart = null;
+            }
+        }, 300);
     }
 }
+
+// ===== Event listener untuk ESC key =====
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const overlay = document.querySelector('.popup-overlay');
+        if (overlay) {
+            closePopup();
+        }
+    }
+});
+
+// ===== Event listener untuk click outside popup =====
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('popup-overlay')) {
+        closePopup();
+    }
+});
 
 // ===== Fungsi untuk Analisa Kembali =====
 function analyzeAgain() {
@@ -540,13 +660,20 @@ function showNotification(message, type = 'info') {
     // Hapus notifikasi sebelumnya jika ada
     const existingNotif = document.querySelector('.notification');
     if (existingNotif) {
-        existingNotif.remove();
+        existingNotif.style.animation = 'slideOutNotif 0.3s ease';
+        setTimeout(() => existingNotif.remove(), 300);
     }
     
     // Buat elemen notifikasi
     const notification = document.createElement('div');
     notification.className = 'notification';
-    notification.textContent = message;
+    
+    // Icon berdasarkan tipe
+    const icons = {
+        success: '✓',
+        error: '✕',
+        info: 'ℹ'
+    };
     
     // Styling berdasarkan tipe
     const colors = {
@@ -555,6 +682,13 @@ function showNotification(message, type = 'info') {
         info: '#4DABF7'
     };
     
+    notification.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span style="font-size: 1.25rem; font-weight: bold;">${icons[type] || icons.info}</span>
+            <span style="flex: 1;">${message}</span>
+        </div>
+    `;
+    
     notification.style.cssText = `
         position: fixed;
         top: 100px;
@@ -562,19 +696,21 @@ function showNotification(message, type = 'info') {
         background: ${colors[type] || colors.info};
         color: white;
         padding: 1rem 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
         z-index: 9999;
-        animation: slideIn 0.3s ease;
-        max-width: 300px;
+        max-width: 320px;
         font-weight: 500;
+        font-size: 0.95rem;
+        line-height: 1.4;
+        font-family: 'Poppins', sans-serif;
     `;
     
     document.body.appendChild(notification);
     
     // Hapus setelah 3 detik
     setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
+        notification.style.animation = 'slideOutNotif 0.3s ease';
         setTimeout(() => notification.remove(), 300);
     }, 3000);
 }
@@ -705,14 +841,15 @@ style.textContent = `
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.8);
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(8px);
         z-index: 9999;
         display: flex;
         justify-content: center;
         align-items: center;
         opacity: 0;
         transition: opacity 0.3s ease;
-        padding: 20px;
+        padding: 1rem;
         overflow-y: auto;
     }
     
@@ -720,17 +857,18 @@ style.textContent = `
         opacity: 1;
     }
     
+    /* Container Popup Modern */
     .popup-content-modern {
-        background: white;
-        border-radius: 24px;
-        padding: 2.5rem;
-        max-width: 1100px;
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 0;
+        max-width: 900px;
         width: 100%;
-        max-height: 90vh;
+        max-height: 95vh;
         overflow-y: auto;
         position: relative;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        transform: scale(0.9);
+        box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+        transform: scale(0.95);
         transition: transform 0.3s ease;
         font-family: 'Poppins', sans-serif;
     }
@@ -739,45 +877,713 @@ style.textContent = `
         transform: scale(1);
     }
     
+    /* Scrollbar Custom */
+    .popup-content-modern::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .popup-content-modern::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .popup-content-modern::-webkit-scrollbar-thumb {
+        background: #6B8E23;
+        border-radius: 10px;
+    }
+    
+    .popup-content-modern::-webkit-scrollbar-thumb:hover {
+        background: #556B2F;
+    }
+    
+    /* Close Button */
     .popup-close {
-        position: absolute;
-        top: 1.5rem;
-        right: 1.5rem;
-        background: #f5f5f5;
+        position: sticky;
+        top: 1rem;
+        right: 1rem;
+        float: right;
+        background: rgba(255, 255, 255, 0.95);
         border: none;
-        font-size: 1.8rem;
+        font-size: 1.5rem;
         color: #333;
         cursor: pointer;
-        width: 40px;
-        height: 40px;
+        width: 36px;
+        height: 36px;
         display: flex;
         align-items: center;
         justify-content: center;
         border-radius: 50%;
         transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        z-index: 10;
+        margin: 1rem 1rem 0 0;
     }
     
     .popup-close:hover {
-        background: #e0e0e0;
-        transform: rotate(90deg);
+        background: #f5f5f5;
+        transform: rotate(90deg) scale(1.1);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
     
+    /* Header Section */
     .popup-header {
         text-align: center;
-        margin-bottom: 2rem;
+        padding: 2rem 2rem 1.5rem;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .header-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #6B8E23, #9ACD32);
+        color: white;
+        padding: 0.4rem 1.2rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.75rem;
     }
     
     .popup-header h2 {
-        font-size: 1.8rem;
+        font-size: 1.5rem;
         font-weight: 700;
-        color: #556B2F;
-        margin-bottom: 0.5rem;
+        color: #2d3748;
+        margin: 0 0 0.5rem 0;
+        line-height: 1.3;
     }
     
     .popup-subtitle {
-        font-size: 0.85rem;
-        color: #666;
+        font-size: 0.8rem;
+        color: #718096;
         font-weight: 400;
+        margin: 0;
+        line-height: 1.5;
+    }
+    
+    /* Card Hasil Utama */
+    .result-main-card {
+        margin: 1.5rem;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-radius: 16px;
+        border-left: 4px solid #6B8E23;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+    }
+    
+    .result-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        flex-shrink: 0;
+    }
+    
+    .result-info {
+        flex: 1;
+    }
+    
+    .result-label {
+        font-size: 0.75rem;
+        color: #718096;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .result-category {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        line-height: 1.2;
+    }
+    
+    .result-confidence-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    
+    .confidence-icon {
+        font-size: 1rem;
+        font-weight: bold;
+    }
+    
+    /* Card Probabilitas */
+    .probabilities-card {
+        margin: 1.5rem;
+        padding: 1.5rem;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border: 1px solid #e9ecef;
+    }
+    
+    .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0 0 1.25rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .prob-content {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        gap: 2rem;
+        align-items: center;
+    }
+    
+    .prob-chart-section {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .prob-chart-section canvas {
+        max-width: 200px;
+        max-height: 200px;
+    }
+    
+    .prob-legend-section {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .legend-item-modern {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem;
+        background: #f8f9fa;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+    }
+    
+    .legend-item-modern:hover {
+        background: #e9ecef;
+        transform: translateX(4px);
+    }
+    
+    .legend-left {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .legend-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .legend-label {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #2d3748;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .legend-right {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-shrink: 0;
+    }
+    
+    .legend-value {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #2d3748;
+        min-width: 50px;
+        text-align: right;
+    }
+    
+    .legend-bar {
+        width: 60px;
+        height: 6px;
+        background: #e9ecef;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    
+    .legend-bar-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.5s ease;
+    }
+    
+    /* Pipeline Card */
+    .pipeline-card {
+        margin: 1.5rem;
+        padding: 1.5rem;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border: 1px solid #e9ecef;
+    }
+    
+    .pipeline-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .pipeline-item {
+        background: #f8f9fa;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    
+    .pipeline-item:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        border-color: #6B8E23;
+    }
+    
+    .pipeline-image-wrapper {
+        width: 100%;
+        aspect-ratio: 1;
+        overflow: hidden;
+        background: white;
+    }
+    
+    .pipeline-image-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .pipeline-label {
+        padding: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: white;
+    }
+    
+    .pipeline-number {
+        width: 24px;
+        height: 24px;
+        background: linear-gradient(135deg, #6B8E23, #9ACD32);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    
+    .pipeline-text {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #2d3748;
+        line-height: 1.2;
+    }
+    
+    /* Button Analyze Again */
+    .btn-analyze-again-modern {
+        width: calc(100% - 3rem);
+        margin: 1.5rem;
+        background: linear-gradient(135deg, #6B8E23, #9ACD32);
+        color: white;
+        padding: 1rem 2rem;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        box-shadow: 0 4px 12px rgba(107, 142, 35, 0.3);
+        font-family: 'Poppins', sans-serif;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .btn-analyze-again-modern::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        transition: left 0.6s;
+    }
+    
+    .btn-analyze-again-modern:hover::before {
+        left: 100%;
+    }
+    
+    .btn-analyze-again-modern:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(107, 142, 35, 0.4);
+    }
+    
+    .btn-analyze-again-modern:active {
+        transform: translateY(0);
+    }
+    
+    .btn-analyze-again-modern svg {
+        flex-shrink: 0;
+    }
+    
+    /* ===== RESPONSIVE TABLET (max 768px) ===== */
+    @media (max-width: 768px) {
+        .popup-overlay {
+            padding: 0.75rem;
+            align-items: flex-start;
+            overflow-y: auto;
+        }
+        
+        .popup-content-modern {
+            border-radius: 16px;
+            max-height: none;
+            margin: 1rem auto;
+        }
+        
+        .popup-close {
+            width: 34px;
+            height: 34px;
+            font-size: 1.4rem;
+            margin: 0.85rem 0.85rem 0 0;
+        }
+        
+        .popup-header {
+            padding: 1.75rem 1.25rem 1.25rem;
+        }
+        
+        .header-badge {
+            font-size: 0.7rem;
+            padding: 0.35rem 1rem;
+        }
+        
+        .popup-header h2 {
+            font-size: 1.3rem;
+        }
+        
+        .popup-subtitle {
+            font-size: 0.75rem;
+            line-height: 1.4;
+        }
+        
+        /* Card Hasil Utama Tablet */
+        .result-main-card {
+            margin: 1.25rem;
+            padding: 1.5rem;
+            gap: 1.25rem;
+        }
+        
+        .result-icon {
+            width: 65px;
+            height: 65px;
+            font-size: 2.25rem;
+        }
+        
+        .result-category {
+            font-size: 1.6rem;
+        }
+        
+        .result-confidence-badge {
+            font-size: 0.85rem;
+            padding: 0.4rem 0.9rem;
+        }
+        
+        /* Probabilitas Tablet */
+        .probabilities-card {
+            margin: 1.25rem;
+            padding: 1.5rem;
+        }
+        
+        .card-title {
+            font-size: 0.95rem;
+            margin-bottom: 1.25rem;
+        }
+        
+        .prob-content {
+            grid-template-columns: 1fr;
+            gap: 1.75rem;
+        }
+        
+        .prob-chart-section {
+            padding: 1rem 0;
+        }
+        
+        .prob-chart-section canvas {
+            max-width: 200px;
+            max-height: 200px;
+        }
+        
+        .legend-item-modern {
+            padding: 0.75rem;
+            gap: 0.85rem;
+        }
+        
+        .legend-label {
+            font-size: 0.85rem;
+        }
+        
+        .legend-value {
+            font-size: 0.9rem;
+            min-width: 50px;
+        }
+        
+        .legend-bar {
+            width: 60px;
+        }
+        
+        /* Pipeline Tablet */
+        .pipeline-card {
+            margin: 1.25rem;
+            padding: 1.5rem;
+        }
+        
+        .pipeline-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        
+        .pipeline-label {
+            padding: 0.75rem;
+        }
+        
+        .pipeline-number {
+            width: 24px;
+            height: 24px;
+            font-size: 0.75rem;
+        }
+        
+        .pipeline-text {
+            font-size: 0.8rem;
+        }
+        
+        /* Button Tablet */
+        .btn-analyze-again-modern {
+            width: calc(100% - 2.5rem);
+            margin: 1.25rem;
+            padding: 1rem 1.75rem;
+            font-size: 0.95rem;
+        }
+    }
+    
+    /* ===== RESPONSIVE MOBILE (max 480px) ===== */
+    @media (max-width: 480px) {
+        .popup-overlay {
+            padding: 0.5rem;
+            align-items: flex-start;
+        }
+        
+        .popup-content-modern {
+            border-radius: 12px;
+            margin: 0.5rem auto;
+        }
+        
+        .popup-close {
+            width: 30px;
+            height: 30px;
+            font-size: 1.25rem;
+            margin: 0.65rem 0.65rem 0 0;
+        }
+        
+        .popup-header {
+            padding: 1.25rem 0.85rem 1rem;
+        }
+        
+        .header-badge {
+            font-size: 0.65rem;
+            padding: 0.3rem 0.85rem;
+            margin-bottom: 0.6rem;
+        }
+        
+        .popup-header h2 {
+            font-size: 1.05rem;
+            line-height: 1.35;
+            padding: 0 0.25rem;
+        }
+        
+        .popup-subtitle {
+            font-size: 0.65rem;
+            line-height: 1.5;
+            padding: 0 0.25rem;
+        }
+        
+        /* Card Hasil Utama Mobile */
+        .result-main-card {
+            margin: 0.85rem;
+            padding: 1.15rem 0.85rem;
+            flex-direction: column;
+            text-align: center;
+            gap: 0.85rem;
+        }
+        
+        .result-icon {
+            width: 55px;
+            height: 55px;
+            font-size: 1.85rem;
+            margin: 0 auto;
+        }
+        
+        .result-label {
+            font-size: 0.7rem;
+        }
+        
+        .result-category {
+            font-size: 1.35rem;
+            line-height: 1.3;
+        }
+        
+        .result-confidence-badge {
+            font-size: 0.75rem;
+            padding: 0.35rem 0.75rem;
+            gap: 0.35rem;
+        }
+        
+        /* Probabilitas Mobile */
+        .probabilities-card {
+            margin: 0.85rem;
+            padding: 1rem 0.85rem;
+        }
+        
+        .card-title {
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.65rem;
+        }
+        
+        .prob-content {
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+        }
+        
+        .prob-chart-section {
+            padding: 0.5rem 0;
+        }
+        
+        .prob-chart-section canvas {
+            max-width: 160px !important;
+            max-height: 160px !important;
+        }
+        
+        .prob-legend-section {
+            gap: 0.65rem;
+        }
+        
+        .legend-item-modern {
+            padding: 0.65rem 0.75rem;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+        
+        .legend-left {
+            gap: 0.5rem;
+            flex: 0 0 auto;
+            min-width: 120px;
+        }
+        
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+        }
+        
+        .legend-label {
+            font-size: 0.75rem;
+            white-space: normal;
+            line-height: 1.3;
+        }
+        
+        .legend-right {
+            gap: 0.6rem;
+            flex: 1;
+            min-width: 0;
+            justify-content: flex-end;
+        }
+        
+        .legend-value {
+            font-size: 0.8rem;
+            min-width: 42px;
+            flex-shrink: 0;
+        }
+        
+        .legend-bar {
+            width: 45px;
+            height: 5px;
+            flex-shrink: 0;
+        }
+        
+        /* Pipeline Mobile */
+        .pipeline-card {
+            margin: 0.85rem;
+            padding: 1rem 0.85rem;
+        }
+        
+        .pipeline-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.65rem;
+        }
+        
+        .pipeline-item {
+            border-radius: 10px;
+        }
+        
+        .pipeline-label {
+            padding: 0.6rem 0.5rem;
+            gap: 0.4rem;
+        }
+        
+        .pipeline-number {
+            width: 20px;
+            height: 20px;
+            font-size: 0.65rem;
+        }
+        
+        .pipeline-text {
+            font-size: 0.7rem;
+            line-height: 1.25;
+        }
+        
+        /* Button Mobile */
+        .btn-analyze-again-modern {
+            width: calc(100% - 1.7rem);
+            margin: 0.85rem;
+            padding: 0.85rem 1.25rem;
+            font-size: 0.85rem;
+            gap: 0.6rem;
+        }
+        
+        .btn-analyze-again-modern svg {
+            width: 18px;
+            height: 18px;
+        }
     }
     
     .popup-images-grid-6 {
@@ -964,71 +1770,19 @@ style.textContent = `
     }
     
     @media (max-width: 768px) {
-        .popup-content-modern {
-            padding: 2rem 1.5rem;
-            margin: 1rem;
+        .loading-popup {
+            padding: 2rem 2.5rem;
+            margin: 0 1rem;
         }
         
-        .popup-images-grid-6 {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.75rem;
+        .loading-avocado {
+            font-size: 80px;
         }
         
-        .popup-header h2 {
-            font-size: 1.5rem;
-        }
-        
-        .popup-subtitle {
-            font-size: 0.75rem;
-        }
-        
-        .result-header {
-            flex-direction: column;
-            gap: 1rem;
-            text-align: center;
-        }
-        
-        .result-category {
-            font-size: 1.5rem;
-        }
-        
-        .confidence-value {
-            font-size: 1.5rem;
-        }
-        
-        .prob-chart-container {
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-        
-        .prob-chart-wrapper {
-            width: 160px;
-            height: 160px;
-        }
-        
-        .prob-legend {
-            width: 100%;
-        }
-        
-        .popup-close {
-            top: 1rem;
-            right: 1rem;
+        .loading-text {
+            font-size: 1rem;
         }
     }
 `;
+
 document.head.appendChild(style);
-
-// ===== Navbar Scroll Effect =====
-window.addEventListener('scroll', function() {
-    const navbar = document.querySelector('.navbar');
-    if (window.scrollY > 50) {
-        navbar.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
-    } else {
-        navbar.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
-    }
-});
-
-// ===== Console Welcome Message =====
-console.log('%c🥑 AvocaDetect ', 'background: #6B8E23; color: white; font-size: 20px; padding: 10px; border-radius: 5px;');
-console.log('%cKlasifikasi Kematangan Alpukat Berbasis Tekstur', 'color: #6B8E23; font-size: 14px;');
-console.log('%cTugas Besar Pengolahan Citra Digital', 'color: #999; font-size: 12px;');
