@@ -715,14 +715,22 @@ html {
     }
 
     .nav-menu {
-        gap: 0.4rem;
-        flex-wrap: wrap;
-        justify-content: flex-end;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        justify-items: center;
+        align-items: center;
+        width: auto;
     }
 
     .nav-link {
-        padding: 0.3rem 0.5rem;
+        padding: 0.35rem 0.7rem;
         font-size: 0.8rem;
+        width: 100%;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .hero {

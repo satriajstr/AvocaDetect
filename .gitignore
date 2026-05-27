@@ -1,4 +1,38 @@
+# ===================================================================
+# .gitignore - AvocaDetect Project
+# ===================================================================
+# File ini mengecualikan file yang TIDAK PERLU di-push ke GitHub
+# ===================================================================
+
+# ===== DATASET (TIDAK PERLU DI-PUSH) =====
+# Dataset hanya dibutuhkan untuk training lokal
+# Aplikasi web hanya butuh model .pkl hasil training
+dataset/
+dataset/*
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.gif
+*.tiff
+*.webp
+
+# Kecuali gambar UI/frontend yang memang bagian dari aplikasi
+!frontend/images/*.png
+!frontend/images/*.jpg
+!frontend/css/*.png
+!frontend/css/*.jpg
+
+# ===== PYTHON =====
+# Virtual environment
 venv/
+env/
+.venv/
+.env/
+ENV/
+venv.bak/
+
+# Python cache
 __pycache__/
 *.pyc
 *.pyo
@@ -9,12 +43,145 @@ __pycache__/
 *.egg-info/
 dist/
 build/
-.env
-.venv
-.DS_Store
-*.log
+*.whl
 
-# Jangan ignore model yang sudah di-training
-# Model ini HARUS di-commit ke Git agar Railway bisa pakai
-# !backend/machine/model/*.pkl
-# !backend/machine/model/*.json
+# Pytest cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb
+
+# ===== ENVIRONMENT VARIABLES =====
+.env
+.env.local
+.env.*.local
+*.env
+
+# ===== IDE & EDITOR =====
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ===== OPERATING SYSTEM =====
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+.directory
+.Trash-*
+
+# ===== LOGS & TEMPORARY FILES =====
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*.orig
+
+# ===== MODEL FILES (HARUS DI-COMMIT!) =====
+# Model .pkl dan .json HARUS di-push agar aplikasi bisa jalan
+# Jangan tambahkan ke .gitignore!
+# ✅ backend/machine/model/svm_model.pkl
+# ✅ backend/machine/model/scaler.pkl
+# ✅ backend/machine/model/eval_report.json
+
+# ===== TESTING & DEVELOPMENT =====
+# Test files
+test_*.py
+*_test.py
+tests/__pycache__/
+
+# Coverage reports
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# ===== DOCUMENTATION (OPTIONAL) =====
+# Jika ada dokumentasi yang tidak perlu di-push
+# docs/_build/
+# *.pdf (jika ada laporan yang besar)
+
+# ===== TEMPORARY UPLOAD FILES =====
+# File upload sementara dari user
+uploads/
+temp/
+tmp/
+
+# ===== DATABASE (JIKA ADA) =====
+*.db
+*.sqlite
+*.sqlite3
+
+# ===== COMPRESSED FILES =====
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# ===== MISC =====
+# Amazon Q rules (sudah ada di project)
+# .amazonq/ - JANGAN di-ignore, ini bagian dari project
+
+# Node modules (jika ada frontend build tools)
+node_modules/
+package-lock.json
+yarn.lock
+
+# ===================================================================
+# CATATAN PENTING:
+# ===================================================================
+# ✅ YANG DI-PUSH:
+#    - Semua kode (.py, .html, .css, .js)
+#    - Model terlatih (.pkl, .json)
+#    - Requirements.txt
+#    - Gambar UI (frontend/images/)
+#    - README.md, Procfile, dll
+#    - File deployment (Railway, Heroku, dll)
+#    - .railway/, .railway-trigger (jika ada)
+#
+# ❌ YANG TIDAK DI-PUSH:
+#    - Dataset (dataset/)
+#    - Virtual environment (venv/)
+#    - Cache Python (__pycache__/)
+#    - File temporary
+#    - IDE settings
+# ===================================================================
