@@ -7,7 +7,15 @@
 # ===== DATASET (TIDAK PERLU DI-PUSH) =====
 # Dataset hanya dibutuhkan untuk training lokal
 # Aplikasi web hanya butuh model .pkl hasil training
-
+dataset/
+dataset/*
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.gif
+*.tiff
+*.webp
 
 # Kecuali gambar UI/frontend yang memang bagian dari aplikasi
 !frontend/images/*.png
