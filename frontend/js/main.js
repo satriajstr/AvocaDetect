@@ -223,7 +223,7 @@ function stopCamera() {
         window.currentStream = null;
     }
     
-    // Reset preview
+    // Reset preview ke state awal
     resetPreview();
 }
 
@@ -243,14 +243,21 @@ function displayImagePreview(imageUrl) {
 
 // ===== Fungsi untuk Reset Preview =====
 function resetPreview() {
+    // Hapus gambar yang tersimpan
+    window.currentImage = null;
+    
+    // Reset preview container ke state awal dengan icon kamera.png
     const previewContainer = document.querySelector('.preview-placeholder');
+    if (!previewContainer) return;
+    
+    // Ambil base URL untuk path gambar
+    const baseUrl = window.location.origin;
+    
     previewContainer.innerHTML = `
-        <span class="preview-icon">📷</span>
+        <img src="${baseUrl}/static/images/kamera.png" alt="camera" class="preview-icon-img" style="height: 10rem; width: auto; margin-bottom: 1rem;">
         <p>Area Preview Kamera</p>
         <p class="preview-hint">Upload gambar atau aktifkan kamera</p>
     `;
-    
-    window.currentImage = null;
 }
 
 // ===== Handler untuk Deteksi =====
@@ -391,10 +398,12 @@ function showResultPopup(result, images) {
                 </div>
                 <div class="result-info">
                     <div class="result-label">Tingkat Kematangan</div>
-                    <div class="result-category" style="color: ${categoryColor};">${result.category}</div>
-                    <div class="result-confidence-badge" style="background: ${categoryColor}; color: white;">
-                        <span class="confidence-icon">✓</span>
-                        <span>${result.confidence.toFixed(1)}% Confidence</span>
+                    <div class="result-category-row">
+                        <div class="result-category" style="color: ${categoryColor};">${result.category}</div>
+                        <div class="result-confidence-badge" style="background: ${categoryColor}; color: white;">
+                            <span class="confidence-icon">✓</span>
+                            <span>${result.confidence.toFixed(1)}%</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -465,13 +474,34 @@ function showResultPopup(result, images) {
                             <span class="pipeline-text">Segmentasi</span>
                         </div>
                     </div>
-                    <div class="pipeline-item">
-                        <div class="pipeline-image-wrapper">
-                            <img src="${images.glcm}" alt="GLCM">
+                    <div class="pipeline-item pipeline-item-glcm">
+                        <div class="pipeline-image-wrapper glcm-wrapper">
+                            <img src="${images.glcm}" alt="GLCM" class="glcm-heatmap">
                         </div>
                         <div class="pipeline-label">
                             <span class="pipeline-number">5</span>
                             <span class="pipeline-text">GLCM Matrix</span>
+                        </div>
+                        <!-- Footer card GLCM dengan info lengkap -->
+                        <div class="glcm-footer">
+                            <!-- Parameter GLCM -->
+                            <div class="glcm-params-row">
+                                <span class="glcm-param-label">Config:</span>
+                                <div class="glcm-params-badges">
+                                    <span class="glcm-badge" title="Distance: jarak antar piksel">D=1</span>
+                                    <span class="glcm-badge" title="Angles: 0°, 45°, 90°, 135°">θ=4</span>
+                                    <span class="glcm-badge" title="Levels: kuantisasi grayscale">L=32</span>
+                                </div>
+                            </div>
+                            <!-- Color scale horizontal -->
+                            <div class="glcm-colorscale-horizontal">
+                                <span class="scale-label">Intensity:</span>
+                                <div class="scale-gradient-wrapper">
+                                    <span class="scale-marker-inline">Low</span>
+                                    <div class="scale-gradient"></div>
+                                    <span class="scale-marker-inline">High</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="pipeline-item">
@@ -613,8 +643,13 @@ document.addEventListener('click', function(e) {
 
 // ===== Fungsi untuk Analisa Kembali =====
 function analyzeAgain() {
+    // Tutup popup hasil
     closePopup();
+    
+    // Reset preview - hapus gambar sebelumnya dan tampilkan icon kamera
     resetPreview();
+    
+    // Scroll ke section deteksi
     scrollToDetection();
 }
 
@@ -996,24 +1031,33 @@ style.textContent = `
         text-transform: uppercase;
         letter-spacing: 0.5px;
         font-weight: 600;
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .result-category-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
     }
     
     .result-category {
         font-size: 1.75rem;
         font-weight: 700;
-        margin-bottom: 0.5rem;
         line-height: 1.2;
+        flex: 1;
     }
     
     .result-confidence-badge {
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
-        padding: 0.4rem 1rem;
+        padding: 0.5rem 1rem;
         border-radius: 20px;
         font-size: 0.85rem;
         font-weight: 600;
+        flex-shrink: 0;
+        white-space: nowrap;
     }
     
     .confidence-icon {
@@ -1310,6 +1354,12 @@ style.textContent = `
             font-size: 2.25rem;
         }
         
+        .result-category-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
         .result-category {
             font-size: 1.6rem;
         }
@@ -1455,6 +1505,12 @@ style.textContent = `
         
         .result-label {
             font-size: 0.7rem;
+        }
+        
+        .result-category-row {
+            flex-direction: column;
+            align-items: center;
+            gap: 0.65rem;
         }
         
         .result-category {
