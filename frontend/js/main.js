@@ -249,7 +249,8 @@ function handleDetect() {
         return;
     }
     
-    showPopup('Sedang memproses...', 'info', 1000);
+    // Tampilkan loading popup
+    showLoadingPopup();
     
     fetch(window.currentImage)
         .then(res => res.blob())
@@ -264,6 +265,9 @@ function handleDetect() {
         })
         .then(response => response.json())
         .then(data => {
+            // Tutup loading popup
+            hideLoadingPopup();
+            
             if (data.success) {
                 showResultPopup(data.result, data.images);
             } else {
@@ -272,8 +276,37 @@ function handleDetect() {
         })
         .catch(error => {
             console.error('Error:', error);
+            hideLoadingPopup();
             showPopup('Terjadi kesalahan saat memproses gambar', 'error', 2000);
         });
+}
+
+// ===== Fungsi untuk Loading Popup =====
+function showLoadingPopup() {
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.id = 'loadingOverlay';
+    loadingOverlay.className = 'loading-overlay';
+    
+    // Ambil base URL dari window.location
+    const baseUrl = window.location.origin;
+    
+    loadingOverlay.innerHTML = `
+        <div class="loading-popup">
+            <div class="loading-avocado">🥑</div>
+            <p class="loading-text">Sedang menganalisis...</p>
+        </div>
+    `;
+    
+    document.body.appendChild(loadingOverlay);
+    setTimeout(() => loadingOverlay.classList.add('active'), 10);
+}
+
+function hideLoadingPopup() {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) {
+        loadingOverlay.classList.remove('active');
+        setTimeout(() => loadingOverlay.remove(), 300);
+    }
 }
 
 // ===== Fungsi untuk Display Hasil Deteksi =====
@@ -549,6 +582,64 @@ function showNotification(message, type = 'info') {
 // ===== CSS untuk Loading Spinner dan Popup =====
 const style = document.createElement('style');
 style.textContent = `
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+        z-index: 10000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .loading-overlay.active {
+        opacity: 1;
+    }
+    
+    .loading-popup {
+        background: white;
+        padding: 3rem 4rem;
+        border-radius: 24px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        text-align: center;
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+    }
+    
+    .loading-overlay.active .loading-popup {
+        transform: scale(1);
+    }
+    
+    .loading-avocado {
+        font-size: 120px;
+        animation: floatLoading 2s ease-in-out infinite;
+        margin-bottom: 1rem;
+        line-height: 1;
+    }
+    
+    @keyframes floatLoading {
+        0%, 100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-20px);
+        }
+    }
+    
+    .loading-text {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #556B2F;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+    
     .loading-spinner {
         border: 4px solid var(--gray-light);
         border-top: 4px solid var(--primary-green);
