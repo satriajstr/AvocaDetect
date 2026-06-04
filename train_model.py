@@ -11,7 +11,7 @@ Setelah training selesai, model akan tersimpan di:
     backend/machine/model/svm_model.pkl
     backend/machine/model/scaler.pkl
 """
-
+//bagus
 import sys
 import os
 
