@@ -1,32 +1,32 @@
 {
-  "accuracy": 80.37,
-  "precision": 81.22,
-  "recall": 80.37,
-  "f1_score": 80.53,
+  "accuracy": 78.24,
+  "precision": 79.94,
+  "recall": 78.24,
+  "f1_score": 78.01,
   "confusion_matrix": [
     [
-      60,
-      2,
-      2,
-      2
+      58,
+      0,
+      0,
+      0
     ],
     [
       0,
-      20,
+      24,
+      3,
+      0
+    ],
+    [
+      0,
+      19,
+      38,
+      18
+    ],
+    [
+      0,
       5,
-      2
-    ],
-    [
-      1,
       12,
-      48,
-      14
-    ],
-    [
-      0,
-      2,
-      11,
-      89
+      85
     ]
   ],
   "categories": [
@@ -35,8 +35,8 @@
     "Matang",
     "Terlalu Matang"
   ],
-  "n_train": 1079,
-  "n_test": 270,
+  "n_train": 1044,
+  "n_test": 262,
   "n_features": 12,
   "model_params": {
     "kernel": "rbf",
@@ -44,5 +44,63 @@
     "gamma": "scale",
     "probability": true,
     "class_weight": "balanced"
+  },
+  "glcm_class_stats": {
+    "Mentah": {
+      "Contrast (mean)": 10.886589,
+      "Correlation (mean)": 0.865773,
+      "Energy (mean)": 0.261587,
+      "Homogeneity (mean)": 0.658976,
+      "ASM (mean)": 0.068595,
+      "Dissimilarity (mean)": 1.206627,
+      "Contrast (std)": 2.197789,
+      "Correlation (std)": 0.027324,
+      "Energy (std)": 0.004495,
+      "Homogeneity (std)": 0.033328,
+      "ASM (std)": 0.002356,
+      "Dissimilarity (std)": 0.198628
+    },
+    "Setengah Matang": {
+      "Contrast (mean)": 10.140603,
+      "Correlation (mean)": 0.880993,
+      "Energy (mean)": 0.274713,
+      "Homogeneity (mean)": 0.639166,
+      "ASM (mean)": 0.07574,
+      "Dissimilarity (mean)": 1.317529,
+      "Contrast (std)": 2.105975,
+      "Correlation (std)": 0.024499,
+      "Energy (std)": 0.003491,
+      "Homogeneity (std)": 0.030661,
+      "ASM (std)": 0.001902,
+      "Dissimilarity (std)": 0.207757
+    },
+    "Matang": {
+      "Contrast (mean)": 10.989507,
+      "Correlation (mean)": 0.882427,
+      "Energy (mean)": 0.2794,
+      "Homogeneity (mean)": 0.614794,
+      "ASM (mean)": 0.078272,
+      "Dissimilarity (mean)": 1.462327,
+      "Contrast (std)": 2.403515,
+      "Correlation (std)": 0.025588,
+      "Energy (std)": 0.003183,
+      "Homogeneity (std)": 0.030957,
+      "ASM (std)": 0.001783,
+      "Dissimilarity (std)": 0.233651
+    },
+    "Terlalu Matang": {
+      "Contrast (mean)": 10.206699,
+      "Correlation (mean)": 0.869896,
+      "Energy (mean)": 0.283767,
+      "Homogeneity (mean)": 0.631328,
+      "ASM (mean)": 0.080688,
+      "Dissimilarity (mean)": 1.361342,
+      "Contrast (std)": 2.170884,
+      "Correlation (std)": 0.027687,
+      "Energy (std)": 0.003935,
+      "Homogeneity (std)": 0.031494,
+      "ASM (std)": 0.002235,
+      "Dissimilarity (std)": 0.218152
+    }
   }
 }

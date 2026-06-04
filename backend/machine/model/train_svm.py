@@ -196,6 +196,24 @@ def train_model(
         pickle.dump(scaler, f)
     print(f"  [OK] Scaler disimpan : {scaler_save_path}")
 
+    # -------------------------------------------------------------------------
+    # Hitung rata-rata fitur GLCM per kelas (untuk ditampilkan di UI)
+    # -------------------------------------------------------------------------
+    FEATURE_NAMES = [
+        'Contrast (mean)', 'Correlation (mean)', 'Energy (mean)',
+        'Homogeneity (mean)', 'ASM (mean)', 'Dissimilarity (mean)',
+        'Contrast (std)', 'Correlation (std)', 'Energy (std)',
+        'Homogeneity (std)', 'ASM (std)', 'Dissimilarity (std)',
+    ]
+    glcm_class_stats = {}
+    for i, cat in enumerate(CATEGORIES):
+        mask = y == i
+        class_features = X[mask]
+        glcm_class_stats[cat] = {
+            name: round(float(class_features[:, j].mean()), 6)
+            for j, name in enumerate(FEATURE_NAMES)
+        }
+
     # Simpan eval report sebagai JSON untuk ditampilkan di UI
     eval_report = {
         'accuracy':          round(accuracy  * 100, 2),
@@ -207,6 +225,7 @@ def train_model(
         'n_train':           len(X_train),
         'n_test':            len(X_test),
         'n_features':        int(X.shape[1]),
+        'glcm_class_stats':  glcm_class_stats,
         'model_params': {
             'kernel':       'rbf',
             'C':            10,

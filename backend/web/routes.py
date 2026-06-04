@@ -236,16 +236,27 @@ def detect():
         features_scaled   = SCALER.transform(features)
 
         # Hitung probabilitas semua kelas via Platt scaling
+        # probabilities_raw[i] = P(kelas MODEL.classes_[i]) — urutan kelas
+        # HARUS dibaca dari MODEL.classes_, bukan diasumsikan [0,1,2,3].
         probabilities_raw = MODEL.predict_proba(features_scaled)[0]
+        class_order       = MODEL.classes_.tolist()   # urutan kelas sesuai model
 
-        # Gunakan argmax dari predict_proba() sebagai prediksi final.
-        # Alasan: MODEL.predict() menggunakan SVM decision boundary, sedangkan
-        # predict_proba() menggunakan Platt scaling — keduanya bisa tidak sinkron.
-        # argmax menjamin prediksi selalu = kelas dengan probabilitas TERTINGGI.
+        # ── Bangun dict { label_int: probabilitas } sesuai urutan model ──
+        prob_by_label = {
+            int(cls): float(prob)
+            for cls, prob in zip(class_order, probabilities_raw)
+        }
+
+        # ── Prediksi = kelas dengan probabilitas TERTINGGI ──────────────
+        # Menggunakan argmax atas dict prob_by_label sehingga selalu sinkron
+        # antara kategori yang ditampilkan dan bar probabilitas di grafik.
+        # (MODEL.predict() bisa berbeda karena menggunakan decision boundary
+        # SVM yang berbeda dari Platt-scaled probability — ini diketahui dan
+        # sengaja diabaikan agar tampilan konsisten.)
         import numpy as np
-        prediction = int(np.argmax(probabilities_raw))
+        prediction = int(max(prob_by_label, key=prob_by_label.get))
         category   = CATEGORIES[prediction]
-        confidence = float(probabilities_raw[prediction] * 100)
+        confidence = float(prob_by_label[prediction] * 100)
 
         # Tolak prediksi dengan confidence sangat rendah
         if confidence < 25:
@@ -259,12 +270,14 @@ def detect():
             }), 400
 
         result = {
-            'prediction':    int(prediction),
+            'prediction':    prediction,
             'category':      category,
             'confidence':    round(confidence, 2),
+            # Kirim semua probabilitas, dipetakan dari label kelas yang benar
             'probabilities': {
-                cat: round(float(probabilities_raw[i] * 100), 2)
-                for i, cat in CATEGORIES.items()
+                CATEGORIES[label]: round(prob * 100, 2)
+                for label, prob in prob_by_label.items()
+                if label in CATEGORIES          # abaikan label tak dikenal
             },
         }
 
@@ -332,10 +345,21 @@ def detect():
         # ------------------------------------------------------------------
         os.remove(filepath)
 
+        # ------------------------------------------------------------------
+        # Load glcm_class_stats dari eval_report jika ada
+        # ------------------------------------------------------------------
+        glcm_class_stats = {}
+        report_path = 'backend/machine/model/eval_report.json'
+        if os.path.exists(report_path):
+            with open(report_path, 'r') as f:
+                _report = json.load(f)
+            glcm_class_stats = _report.get('glcm_class_stats', {})
+
         return jsonify({
             'success': True,
             'result':  result,
             'features': features_dict,
+            'glcm_class_stats': glcm_class_stats,
             'images': {
                 'original':     img1_original,
                 'grayscale':    img2_gray,

@@ -294,7 +294,7 @@ function handleDetect() {
             hideLoadingPopup();
             
             if (data.success) {
-                showResultPopup(data.result, data.images);
+                showResultPopup(data.result, data.images, data.features, data.glcm_class_stats || {});
             } else {
                 showPopup(data.error, 'error', 2000);
             }
@@ -373,8 +373,227 @@ function displayResults(results) {
     resultContent.innerHTML = html;
 }
 
+// ===== Fungsi untuk render tabel GLCM per kelas =====
+function renderGlcmClassTable(features, glcmClassStats, predictedCategory) {
+    if (!glcmClassStats || Object.keys(glcmClassStats).length === 0) {
+        return `
+        <div class="glcm-table-card">
+            <h3 class="card-title">Parameter GLCM per Kelas Klasifikasi</h3>
+            <div style="text-align:center; padding:2rem; color:#718096; font-size:0.85rem;">
+                <div style="font-size:2rem; margin-bottom:0.5rem;">📊</div>
+                Data statistik kelas belum tersedia.<br>
+                <span style="font-size:0.75rem;">Jalankan <code>python update_glcm_stats.py</code> lalu restart server.</span>
+            </div>
+        </div>`;
+    }
+
+    const categories = ['Mentah', 'Setengah Matang', 'Matang', 'Terlalu Matang'];
+    const colorMap = {
+        'Mentah':          '#FF6B6B',
+        'Setengah Matang': '#FFA94D',
+        'Matang':          '#51CF66',
+        'Terlalu Matang':  '#9B59B6'
+    };
+    const emojiMap = {
+        'Mentah':          '🟢',
+        'Setengah Matang': '🟡',
+        'Matang':          '🟠',
+        'Terlalu Matang':  '🔴'
+    };
+    const descMap = {
+        'Contrast':     'Perbedaan intensitas antar piksel. Tinggi = kasar.',
+        'Correlation':  'Linearitas hubungan antar piksel. Tinggi = pola seragam.',
+        'Energy':       'Keseragaman distribusi. Tinggi = tekstur homogen.',
+        'Homogeneity':  'Kedekatan ke diagonal GLCM. Tinggi = halus.',
+        'ASM':          'Angular Second Moment. Tinggi = sangat seragam.',
+        'Dissimilarity':'Perbedaan absolut. Tinggi = tekstur tidak seragam.'
+    };
+
+    // 6 fitur mean yang ditampilkan
+    const featureKeys   = [
+        'Contrast (mean)', 'Correlation (mean)', 'Energy (mean)',
+        'Homogeneity (mean)', 'ASM (mean)', 'Dissimilarity (mean)'
+    ];
+    const featureLabels = ['Contrast', 'Correlation', 'Energy', 'Homogeneity', 'ASM', 'Dissimilarity'];
+
+    // ── Hitung jarak Euclidean input ke tiap kelas (hanya 6 mean) ──────────
+    const distances = {};
+    categories.forEach(cat => {
+        if (!glcmClassStats[cat]) { distances[cat] = Infinity; return; }
+        let sumSq = 0;
+        featureKeys.forEach(k => {
+            const iv = features[k] ?? 0;
+            const cv = glcmClassStats[cat][k] ?? 0;
+            sumSq += (iv - cv) ** 2;
+        });
+        distances[cat] = Math.sqrt(sumSq);
+    });
+
+    // Normalisasi jarak ke 0–100 (semakin kecil jarak = semakin mirip = bar lebih penuh)
+    const maxDist = Math.max(...Object.values(distances).filter(isFinite));
+    const similarity = {};   // 0–100, tinggi = mirip
+    categories.forEach(cat => {
+        similarity[cat] = maxDist > 0
+            ? Math.round((1 - distances[cat] / maxDist) * 100)
+            : 100;
+    });
+
+    // ── Header kelas ────────────────────────────────────────────────────────
+    const headerCols = categories.map(cat => {
+        const isActive = cat === predictedCategory;
+        const color    = colorMap[cat] || '#999';
+        return `<th class="glcm-th-class ${isActive ? 'glcm-th-active' : ''}"
+                    style="--cls-color:${color};">
+            <div class="glcm-th-inner">
+                <span class="glcm-th-emoji">${emojiMap[cat] || ''}</span>
+                <span class="glcm-th-name">${cat}</span>
+                ${isActive ? '<span class="glcm-th-check">✓ Prediksi</span>' : ''}
+            </div>
+        </th>`;
+    }).join('');
+
+    // ── Baris data ──────────────────────────────────────────────────────────
+    const dataRows = featureKeys.map((key, i) => {
+        const label   = featureLabels[i];
+        const inputVal = features[key];
+        const desc    = descMap[label] || '';
+
+        // Cari nilai tertinggi & terendah di antara kelas untuk highlight
+        const classVals = categories.map(cat =>
+            (glcmClassStats[cat] && glcmClassStats[cat][key] != null)
+                ? glcmClassStats[cat][key] : null
+        );
+        const validVals = classVals.filter(v => v !== null);
+        const minVal = Math.min(...validVals);
+        const maxVal = Math.max(...validVals);
+
+        const classCells = categories.map((cat, ci) => {
+            const cv       = classVals[ci];
+            const isActive = cat === predictedCategory;
+            const color    = colorMap[cat] || '#999';
+
+            // Насколько близко input к этому классу
+            let matchStr = '';
+            if (cv !== null && inputVal !== undefined) {
+                const diff    = Math.abs(inputVal - cv);
+                const range   = maxVal - minVal || 1;
+                const matchPct = Math.max(0, Math.round((1 - diff / range) * 100));
+                matchStr = matchPct >= 80
+                    ? `<span class="glcm-match-high" style="color:${color};">≈ ${matchPct}%</span>`
+                    : matchPct >= 50
+                    ? `<span class="glcm-match-mid">≈ ${matchPct}%</span>`
+                    : `<span class="glcm-match-low">≈ ${matchPct}%</span>`;
+            }
+
+            return `<td class="glcm-td-class ${isActive ? 'glcm-td-active' : ''}"
+                        style="${isActive ? '--cls-color:' + color + ';' : ''}">
+                <div class="glcm-cell-val">${cv !== null ? cv.toFixed(5) : '-'}</div>
+                ${matchStr}
+            </td>`;
+        }).join('');
+
+        return `<tr class="glcm-data-row">
+            <td class="glcm-td-feat" title="${desc}">
+                <span class="glcm-feat-name">${label}</span>
+                <span class="glcm-feat-desc">${desc}</span>
+            </td>
+            <td class="glcm-td-input">
+                <div class="glcm-cell-val glcm-input-val">
+                    ${inputVal !== undefined ? inputVal.toFixed(5) : '-'}
+                </div>
+            </td>
+            ${classCells}
+        </tr>`;
+    }).join('');
+
+    // ── Baris kemiripan (similarity bar) ─────────────────────────────────
+    const similarityRow = `<tr class="glcm-similarity-row">
+        <td class="glcm-td-feat glcm-sim-label">
+            <span class="glcm-feat-name">Kemiripan</span>
+            <span class="glcm-feat-desc">Seberapa dekat input Anda ke rata-rata kelas ini.</span>
+        </td>
+        <td class="glcm-td-input" style="color:#718096; font-size:0.7rem; text-align:center;">—</td>
+        ${categories.map(cat => {
+            const sim   = similarity[cat];
+            const color = colorMap[cat] || '#999';
+            const isActive = cat === predictedCategory;
+            return `<td class="glcm-td-class ${isActive ? 'glcm-td-active' : ''}"
+                        style="${isActive ? '--cls-color:' + color + ';' : ''}">
+                <div class="glcm-sim-wrap">
+                    <div class="glcm-sim-bar-bg">
+                        <div class="glcm-sim-bar-fill"
+                             style="width:${sim}%; background:${color};"></div>
+                    </div>
+                    <span class="glcm-sim-pct" style="color:${color};">${sim}%</span>
+                </div>
+            </td>`;
+        }).join('')}
+    </tr>`;
+
+    // ── Summary card atas tabel ──────────────────────────────────────────
+    const predColor = colorMap[predictedCategory] || '#6B8E23';
+    const summaryCards = categories.map(cat => {
+        const sim      = similarity[cat];
+        const color    = colorMap[cat] || '#999';
+        const isActive = cat === predictedCategory;
+        return `<div class="glcm-summary-chip ${isActive ? 'glcm-summary-chip-active' : ''}"
+                     style="--chip-color:${color};">
+            <span class="chip-emoji">${emojiMap[cat] || ''}</span>
+            <span class="chip-name">${cat}</span>
+            <span class="chip-sim">${sim}%</span>
+            ${isActive ? '<span class="chip-badge">✓ Prediksi</span>' : ''}
+        </div>`;
+    }).join('');
+
+    return `
+    <div class="glcm-table-card">
+        <!-- Judul -->
+        <h3 class="card-title">Parameter GLCM per Kelas Klasifikasi</h3>
+        <p class="glcm-subtitle">
+            Perbandingan nilai fitur gambar Anda dengan rata-rata tiap kelas dari dataset training.
+            Kelas dengan nilai <strong>Kemiripan tertinggi</strong> = hasil prediksi.
+        </p>
+
+        <!-- Summary kemiripan -->
+        <div class="glcm-summary-row">${summaryCards}</div>
+
+        <!-- Penjelasan fitur yang diprediksi -->
+        <div class="glcm-pred-explain" style="border-color:${predColor}; background:${predColor}10;">
+            <span class="glcm-pred-icon" style="background:${predColor}20; color:${predColor};">🥑</span>
+            <div>
+                <strong style="color:${predColor};">Diprediksi: ${predictedCategory}</strong>
+                — Parameter GLCM gambar Anda paling mendekati rata-rata kelas
+                <strong>${predictedCategory}</strong> dalam dataset training.
+                Semakin tinggi % kemiripan, semakin yakin model.
+            </div>
+        </div>
+
+        <!-- Tabel detail -->
+        <div class="glcm-table-scroll">
+            <table class="glcm-detail-table">
+                <thead>
+                    <tr>
+                        <th class="glcm-th-feat">Fitur GLCM</th>
+                        <th class="glcm-th-input">📥 Input Anda</th>
+                        ${headerCols}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${dataRows}
+                    ${similarityRow}
+                </tbody>
+            </table>
+        </div>
+
+        <p class="glcm-footnote">
+            * Nilai kelas = rata-rata fitur dari seluruh dataset training per kategori.
+            Kolom <em>Kemiripan</em> = seberapa dekat nilai input Anda dengan rata-rata kelas tersebut (semakin tinggi = semakin mirip).
+        </p>
+    </div>`;
+}
+
 // ===== Fungsi untuk Popup Hasil =====
-function showResultPopup(result, images) {
+function showResultPopup(result, images, features, glcmClassStats) {
     const overlay = document.createElement('div');
     overlay.className = 'popup-overlay';
     
@@ -522,6 +741,9 @@ function showResultPopup(result, images) {
                     </div>
                 </div>
             </div>
+            
+            <!-- GLCM Parameter per Kelas -->
+            ${renderGlcmClassTable(features || {}, glcmClassStats || {}, result.category)}
             
             <!-- Action Button -->
             <button class="btn-analyze-again-modern" onclick="analyzeAgain()">
@@ -1309,6 +1531,353 @@ style.textContent = `
         flex-shrink: 0;
     }
     
+    /* ===========================
+       GLCM TABLE CARD — NEW DESIGN
+       =========================== */
+    .glcm-table-card {
+        margin: 1.5rem;
+        padding: 1.5rem;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border: 1px solid #e9ecef;
+    }
+
+    .glcm-subtitle {
+        font-size: 0.78rem;
+        color: #718096;
+        margin: -0.5rem 0 1rem 0;
+        line-height: 1.5;
+    }
+
+    /* ── Summary chips (kemiripan per kelas di atas tabel) ── */
+    .glcm-summary-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-bottom: 1rem;
+    }
+
+    .glcm-summary-chip {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.45rem 0.85rem;
+        border-radius: 20px;
+        border: 1.5px solid var(--chip-color, #999);
+        background: white;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #495057;
+        transition: all 0.2s ease;
+        flex: 1;
+        min-width: 130px;
+        justify-content: center;
+    }
+
+    .glcm-summary-chip-active {
+        background: var(--chip-color, #6B8E23);
+        color: white !important;
+        box-shadow: 0 3px 10px color-mix(in srgb, var(--chip-color) 40%, transparent);
+    }
+
+    .glcm-summary-chip-active .chip-name,
+    .glcm-summary-chip-active .chip-sim {
+        color: white;
+    }
+
+    .chip-emoji { font-size: 1rem; }
+
+    .chip-name {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #2d3748;
+    }
+
+    .chip-sim {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--chip-color, #999);
+    }
+
+    .chip-badge {
+        font-size: 0.65rem;
+        background: rgba(255,255,255,0.25);
+        border-radius: 10px;
+        padding: 0.1rem 0.4rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    /* ── Banner penjelasan prediksi ── */
+    .glcm-pred-explain {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        padding: 0.85rem 1rem;
+        border-radius: 10px;
+        border-left: 4px solid #6B8E23;
+        margin-bottom: 1.25rem;
+        font-size: 0.78rem;
+        color: #2d3748;
+        line-height: 1.55;
+    }
+
+    .glcm-pred-icon {
+        font-size: 1.5rem;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    /* ── Tabel detail ── */
+    .glcm-table-scroll {
+        overflow-x: auto;
+        border-radius: 10px;
+        border: 1px solid #e9ecef;
+    }
+
+    .glcm-detail-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.75rem;
+    }
+
+    /* Header: Fitur GLCM */
+    .glcm-th-feat {
+        padding: 0.7rem 0.75rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-align: left;
+        color: #495057;
+        background: #f8f9fa;
+        border-bottom: 2px solid #e9ecef;
+        white-space: nowrap;
+        min-width: 110px;
+    }
+
+    /* Header: Input Anda */
+    .glcm-th-input {
+        padding: 0.7rem 0.6rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-align: center;
+        background: #dbeafe;
+        color: #1d4ed8;
+        border-bottom: 2px solid #93c5fd;
+        white-space: nowrap;
+        min-width: 90px;
+    }
+
+    /* Header: per kelas */
+    .glcm-th-class {
+        padding: 0.5rem 0.4rem;
+        text-align: center;
+        border-bottom: 2px solid #e9ecef;
+        min-width: 100px;
+    }
+
+    .glcm-th-active {
+        background: color-mix(in srgb, var(--cls-color) 12%, white) !important;
+        border-bottom: 2px solid var(--cls-color) !important;
+    }
+
+    .glcm-th-inner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.2rem;
+    }
+
+    .glcm-th-emoji { font-size: 1.1rem; }
+
+    .glcm-th-name {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #2d3748;
+    }
+
+    .glcm-th-check {
+        font-size: 0.6rem;
+        background: var(--cls-color, #6B8E23);
+        color: white;
+        border-radius: 8px;
+        padding: 0.1rem 0.45rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    /* Baris data */
+    .glcm-data-row {
+        transition: background 0.15s ease;
+    }
+
+    .glcm-data-row:hover {
+        background: #f8f9fa;
+    }
+
+    .glcm-data-row:not(:last-child) {
+        border-bottom: 1px solid #f1f3f5;
+    }
+
+    /* Cell: nama fitur */
+    .glcm-td-feat {
+        padding: 0.55rem 0.75rem;
+        background: #f8f9fa;
+        border-right: 1px solid #e9ecef;
+        vertical-align: middle;
+        cursor: help;
+    }
+
+    .glcm-feat-name {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #2d3748;
+        white-space: nowrap;
+    }
+
+    .glcm-feat-desc {
+        display: block;
+        font-size: 0.62rem;
+        color: #a0aec0;
+        line-height: 1.3;
+        margin-top: 0.1rem;
+    }
+
+    /* Cell: input */
+    .glcm-td-input {
+        padding: 0.55rem 0.5rem;
+        text-align: center;
+        background: #eff6ff;
+        border-right: 1px solid #bfdbfe;
+        vertical-align: middle;
+    }
+
+    .glcm-cell-val {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #1e3a5f;
+    }
+
+    .glcm-input-val {
+        font-size: 0.75rem;
+        color: #1d4ed8;
+    }
+
+    /* Cell: nilai kelas */
+    .glcm-td-class {
+        padding: 0.4rem 0.4rem;
+        text-align: center;
+        border-right: 1px solid #f1f3f5;
+        vertical-align: middle;
+    }
+
+    .glcm-td-active {
+        background: color-mix(in srgb, var(--cls-color) 8%, white);
+        border-right: 1px solid color-mix(in srgb, var(--cls-color) 20%, white);
+    }
+
+    .glcm-td-active .glcm-cell-val {
+        color: var(--cls-color, #2d3748);
+        font-weight: 700;
+    }
+
+    /* Match percentage badges */
+    .glcm-match-high,
+    .glcm-match-mid,
+    .glcm-match-low {
+        display: block;
+        font-size: 0.6rem;
+        font-weight: 700;
+        margin-top: 0.15rem;
+    }
+
+    .glcm-match-high { /* colour set inline */ }
+    .glcm-match-mid  { color: #d97706; }
+    .glcm-match-low  { color: #9ca3af; }
+
+    /* Baris kemiripan */
+    .glcm-similarity-row {
+        background: #f8fafc;
+        border-top: 2px solid #e9ecef;
+    }
+
+    .glcm-sim-label .glcm-feat-name {
+        color: #6B8E23;
+    }
+
+    .glcm-sim-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.2rem 0;
+    }
+
+    .glcm-sim-bar-bg {
+        width: 80%;
+        height: 7px;
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .glcm-sim-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.8s ease;
+    }
+
+    .glcm-sim-pct {
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
+
+    /* Footnote */
+    .glcm-footnote {
+        font-size: 0.68rem;
+        color: #a0aec0;
+        margin: 0.85rem 0 0 0;
+        line-height: 1.5;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+        .glcm-table-card {
+            margin: 1.25rem;
+            padding: 1.25rem;
+        }
+        .glcm-summary-chip {
+            min-width: 100px;
+            padding: 0.4rem 0.65rem;
+        }
+        .glcm-feat-desc { display: none; }
+        .glcm-sim-bar-bg { width: 70%; }
+    }
+
+    @media (max-width: 480px) {
+        .glcm-table-card {
+            margin: 0.85rem;
+            padding: 1rem 0.85rem;
+        }
+        .glcm-summary-row { gap: 0.4rem; }
+        .glcm-summary-chip {
+            min-width: 80px;
+            font-size: 0.68rem;
+            padding: 0.35rem 0.5rem;
+        }
+        .chip-name { font-size: 0.65rem; }
+        .glcm-pred-explain { font-size: 0.72rem; }
+        .glcm-sim-bar-bg { width: 60%; }
+    }
+
+
     /* ===== RESPONSIVE TABLET (max 768px) ===== */
     @media (max-width: 768px) {
         .popup-overlay {
